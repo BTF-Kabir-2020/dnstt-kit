@@ -1,0 +1,76 @@
+{
+  "profiles": {
+    "mame": {
+      "tunnel_domain": "mame.darkmous.ir",
+      "a_domain": "cloudflare.com",
+      "extra_domains": ["mame.darkmous.ir"],
+      "pubkey": "eae29baf5db2573e1e2f0769eb91faf8c9f14fd60f7fdfd270b1e304d448d21f",
+      "profile_name": "darkmous",
+      "remark": "My DNSTT+SSH",
+      "ssh_user": "root",
+      "ssh_pass": "CHANGE_ME",
+      "include_ssh": true,
+      "dnstt_mode": 2
+    },
+    "dvr": {
+      "tunnel_domain": "dvr.darkmous.ir",
+      "a_domain": "cloudflare.com",
+      "extra_domains": ["dvr.darkmous.ir"],
+      "pubkey": "0083086fd8e7b243697148358c890b9fc9cba229e4a92fbb9f7506f5f9a88714",
+      "profile_name": "darkmous",
+      "remark": "My DNSTT+SSH",
+      "ssh_user": "root",
+      "ssh_pass": "CHANGE_ME",
+      "include_ssh": true,
+      "dnstt_mode": 2
+    },
+    "b": {
+      "tunnel_domain": "b.darkmous.ir",
+      "a_domain": "cloudflare.com",
+      "extra_domains": ["b.darkmous.ir"],
+      "pubkey": "24c18311b449748c1a7bab7f096bd32a575f73ffb97d624b84f46c3c86e71f7d",
+      "profile_name": "darkmous",
+      "remark": "My DNSTT+SSH",
+      "ssh_user": "root",
+      "ssh_pass": "CHANGE_ME",
+      "include_ssh": true,
+      "dnstt_mode": 2
+    },
+    "l": {
+      "tunnel_domain": "l.darkmous.ir",
+      "a_domain": "cloudflare.com",
+      "extra_domains": ["l.darkmous.ir"],
+      "pubkey": "51fe9edab2757edd5ffb47c9d079b632731afe9762df026bec5f56debf183c30",
+      "profile_name": "darkmous",
+      "remark": "My DNSTT+SSH",
+      "ssh_user": "root",
+      "ssh_pass": "CHANGE_ME",
+      "include_ssh": true,
+      "dnstt_mode": 2
+    },
+    "one": {
+      "tunnel_domain": "one.darkmous.ir",
+      "a_domain": "cloudflare.com",
+      "extra_domains": ["one.darkmous.ir"],
+      "pubkey": "2a8104afe25deaab7f335c97721401da3d81d282caccf117c54871836b57b856",
+      "profile_name": "darkmous",
+      "remark": "My DNSTT+SSH",
+      "ssh_user": "root",
+      "ssh_pass": "CHANGE_ME",
+      "include_ssh": true,
+      "dnstt_mode": 2
+    },
+    "p": {
+      "tunnel_domain": "p.darkmous.ir",
+      "a_domain": "cloudflare.com",
+      "extra_domains": ["p.darkmous.ir"],
+      "pubkey": "549f1aa0183d2eb641315bc32ffeb55225dfa57b381aff5f6d1e31de15bbfd78",
+      "profile_name": "darkmous",
+      "remark": "My DNSTT+SSH",
+      "ssh_user": "root",
+      "ssh_pass": "CHANGE_ME",
+      "include_ssh": true,
+      "dnstt_mode": 2
+    }
+  }
+}

@@ -1,0 +1,22 @@
+[package]
+name = "scanner_core"
+version = "0.1.0"
+edition = "2021"
+description = "DNS resolver scanner core — library and FFI for Android/Java/Kotlin"
+
+[lib]
+# rlib برای لینک عادی + cdylib برای FFI / Android / Python
+crate-type = ["rlib", "cdylib"]
+
+[features]
+default = []
+# نگه داشته شده برای سازگاری با اسکریپت‌های قدیمی
+cdylib = []
+
+[dependencies]
+tokio = { version = "1.37", features = ["full"] }
+regex = "1"
+rand = "0.8"
+chrono = "0.4"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"

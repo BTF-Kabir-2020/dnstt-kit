@@ -1,0 +1,107 @@
+# =============================================================================
+# dnstt-kit CI — کیفیت کد (rustfmt + clippy) + تست + بیلد چند OS
+# الگوی مشابه cs16-tool-v2: fmt --check و clippy -D warnings اجباری‌اند.
+# Actions: checkout/upload-artifact روی Node 24 (بدون هشدار Node 20).
+# =============================================================================
+name: CI
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+  workflow_dispatch:
+
+env:
+  CARGO_TERM_COLOR: always
+  CARGO_TARGET_DIR: target
+
+jobs:
+  # --- دروازه کیفیت (مثل lint، ولی برای Rust: rustfmt + clippy) ---
+  quality:
+    name: fmt + clippy
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - uses: Swatinem/rust-cache@v2
+      - name: rustfmt check
+        run: cargo fmt --all -- --check
+      - name: clippy (-D warnings)
+        run: cargo clippy --workspace --all-targets -- -D warnings
+
+  test:
+    name: test (${{ matrix.os }})
+    needs: quality
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v5
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy
+      - uses: Swatinem/rust-cache@v2
+      - name: Test
+        run: cargo test --workspace -- --test-threads=2
+      - name: Build release + lib
+        run: |
+          cargo build -p dns-cli --release
+          cargo build -p scanner_core --release
+      - name: Smoke
+        shell: bash
+        run: |
+          BIN=target/release/dns-cli
+          [[ -f "$BIN" ]] || BIN=target/release/dns-cli.exe
+          "$BIN" init || true
+          "$BIN" doctor || true
+          "$BIN" info
+          "$BIN" backup create --mode kit --keep 5 --label ci
+      - uses: actions/upload-artifact@v5
+        with:
+          name: dns-cli-${{ matrix.os }}
+          path: |
+            target/release/dns-cli
+            target/release/dns-cli.exe
+            target/release/scanner_core.dll
+            target/release/libscanner_core.so
+            target/release/libscanner_core.dylib
+          if-no-files-found: warn
+
+  cross-linux:
+    name: cross ${{ matrix.target }}
+    needs: quality
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - target: aarch64-unknown-linux-gnu
+            apt: gcc-aarch64-linux-gnu
+            linker: aarch64-linux-gnu-gcc
+          - target: x86_64-unknown-linux-musl
+            apt: musl-tools
+            linker: ""
+    steps:
+      - uses: actions/checkout@v5
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+      - uses: Swatinem/rust-cache@v2
+      - name: Install linker tools
+        run: sudo apt-get update && sudo apt-get install -y ${{ matrix.apt }}
+      - name: Cross build
+        continue-on-error: ${{ matrix.target == 'x86_64-unknown-linux-musl' }}
+        env:
+          CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER: ${{ matrix.linker }}
+        run: cargo build -p dns-cli --release --target ${{ matrix.target }}
+      - uses: actions/upload-artifact@v5
+        if: success()
+        with:
+          name: dns-cli-${{ matrix.target }}
+          path: target/${{ matrix.target }}/release/dns-cli
+          if-no-files-found: warn

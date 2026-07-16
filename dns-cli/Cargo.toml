@@ -1,0 +1,40 @@
+[package]
+name = "dns-cli"
+version = "0.1.0"
+edition = "2021"
+description = "Unified DNSTT kit: scan resolvers, optional slipnet e2e, generate NetMod/NekoBox links"
+authors = ["BTF Kabir <101173470+BTF-Kabir-2020@users.noreply.github.com>"]
+license-file = "../LICENSE"
+repository = "https://github.com/BTF-Kabir-2020/dnstt-kit"
+
+[[bin]]
+name = "dns-cli"
+path = "src/main.rs"
+
+[target.'cfg(windows)'.build-dependencies]
+winres = "0.1"
+
+[dependencies]
+scanner_core = { path = "../scanner-core" }
+clap = { version = "4.5", features = ["derive", "env"] }
+tokio = { version = "1.37", features = ["full"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+flate2 = "1"
+base64 = "0.22"
+zip = { version = "2", default-features = false, features = ["deflate"] }
+sha2 = "0.10"
+chrono = "0.4"
+hex = "0.4"
+rand = "0.8"
+thiserror = "1"
+ureq = { version = "2", default-features = false, features = ["tls"] }
+rusqlite = { version = "0.32", features = ["bundled"] }
+tiny_http = "0.12"
+clap_complete = "4.5"
+dotenvy = "0.15"
+
+[dev-dependencies]
+tempfile = "3"
+serde_json = "1"
+dotenvy = "0.15"

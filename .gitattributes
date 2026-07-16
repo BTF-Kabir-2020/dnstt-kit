@@ -1,0 +1,20 @@
+# نرمال‌سازی خط‌پایان و تشخیص زبان برای GitHub
+* text=auto eol=lf
+
+*.rs     text eol=lf
+*.toml   text eol=lf
+*.md     text eol=lf
+*.yml    text eol=lf
+*.yaml   text eol=lf
+*.json   text eol=lf
+*.py     text eol=lf
+*.sh     text eol=lf
+*.ps1    text eol=crlf
+
+*.exe    binary
+*.dll    binary
+*.so     binary
+*.dylib  binary
+*.pdb    binary
+*.zip    binary
+*.sqlite binary

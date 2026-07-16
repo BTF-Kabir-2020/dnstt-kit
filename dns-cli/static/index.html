@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"/>
+<meta name="color-scheme" content="light dark"/>
+<meta name="referrer" content="no-referrer"/>
+<title>dnstt-kit panel</title>
+<!-- Offline Tailwind = همان Play CDN، دانلودشده محلی (بدون اینترنت) -->
+<script src="/tailwindcss.js"></script>
+<script>
+  tailwind.config = {
+    theme: {
+      extend: {
+        colors: {
+          ink: "#15202b",
+          mist: "#5b6b7c",
+          line: "#d7dee7",
+          soft: "#f4f6f8",
+          accent: "#0b6bcb",
+          "accent-soft": "#e8f1fb",
+          ok: "#0a7a45",
+          bad: "#b42318",
+          warn: "#9a6700",
+        },
+        maxWidth: { panel: "960px" },
+        fontFamily: {
+          ui: ['"Segoe UI"', "Tahoma", '"Noto Sans Arabic"', "sans-serif"],
+        },
+      },
+    },
+  };
+</script>
+<link rel="stylesheet" href="/site.css"/>
+</head>
+<body class="m-0 leading-relaxed">
+<header class="sticky top-0 z-20 border-b border-line bg-white/95 shadow-sm backdrop-blur">
+  <div class="mx-auto flex max-w-panel flex-wrap items-center justify-between gap-3 px-4 py-3">
+    <div>
+      <h1 class="m-0 text-[clamp(1.15rem,3.5vw,1.45rem)] font-bold">dnstt-kit panel</h1>
+      <p id="wd" class="m-0 mt-0.5 break-all text-sm text-mist">work_dir: …</p>
+    </div>
+    <nav class="flex flex-wrap gap-1.5" aria-label="tabs">
+      <button type="button" class="nav-pill nav-pill-active" data-tab="home" id="tab-home">Start</button>
+      <button type="button" class="nav-pill" data-tab="opts" id="tab-opts">Options</button>
+      <button type="button" class="nav-pill" data-tab="guide" id="tab-guide">Guide</button>
+      <button type="button" class="nav-pill" data-tab="status" id="tab-status">Status</button>
+    </nav>
+  </div>
+</header>
+
+<main class="mx-auto max-w-panel px-4 pb-12 pt-4">
+  <div id="banner" class="mb-4 hidden rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 text-amber-900" role="alert"></div>
+
+  <section id="view-home">
+    <div class="mb-4 rounded-[14px] border border-line bg-gradient-to-br from-accent-soft to-white p-4">
+      <h2 class="m-0 mb-1 text-[clamp(1.15rem,4vw,1.45rem)]">Start here</h2>
+      <p class="m-0 text-mist">Aval <b>doctor</b> (health). Details → Options. Full disk path neshun dade nemishe.</p>
+    </div>
+    <div class="mb-4 grid grid-cols-2 gap-3 sm:grid-cols-4" id="stats"></div>
+    <div class="panel">
+      <h3 class="m-0 mb-1 text-base font-semibold">Common actions</h3>
+      <p class="mb-3 mt-0 text-sm text-mist">Error-ha too table / box payin miyan.</p>
+      <div class="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
+        <button class="btn-primary" type="button" data-act="doctor">1) doctor<small class="mt-0.5 block text-xs font-normal opacity-90">health: profile / slipnet / db</small></button>
+        <button class="btn-primary" type="button" data-act="scan">2) scan<small class="mt-0.5 block text-xs font-normal opacity-90">DNS — preset az Options</small></button>
+        <button class="btn-primary" type="button" data-act="pipeline">3) pipeline<small class="mt-0.5 block text-xs font-normal opacity-90">scan + generate links</small></button>
+        <button class="btn-secondary" type="button" data-act="backup">4) backup<small class="mt-0.5 block text-xs font-normal opacity-90">backups/</small></button>
+        <button class="btn-secondary" type="button" data-act="init">5) init<small class="mt-0.5 block text-xs font-normal opacity-90">folders + profiles</small></button>
+        <button class="btn-secondary" type="button" data-act="info">6) info<small class="mt-0.5 block text-xs font-normal opacity-90">env / paths</small></button>
+      </div>
+      <div id="toast" class="mt-3 hidden max-h-56 overflow-auto whitespace-pre-wrap break-words rounded-lg bg-accent-soft px-3 py-2" role="status"></div>
+    </div>
+    <div class="panel">
+      <h3 class="m-0 mb-2 text-base font-semibold">Jobs</h3>
+      <div class="overflow-x-auto">
+        <table class="w-full border-collapse text-sm">
+          <thead><tr class="text-mist"><th class="border-b border-line p-2 text-right">id</th><th class="border-b border-line p-2 text-right">job</th><th class="border-b border-line p-2 text-right">status</th><th class="border-b border-line p-2 text-right">msg</th></tr></thead>
+          <tbody id="jobs"><tr><td class="p-2" colspan="4">no jobs yet</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <section id="view-opts" class="hidden">
+    <div class="panel">
+      <h3 class="m-0 mb-1 text-base font-semibold">Options</h3>
+      <p class="mb-3 mt-0 text-sm text-mist">Same flags as CLI · default preset = low (RAM kam)</p>
+      <div class="mb-3">
+        <label class="mb-1 block text-sm text-mist" for="api_token">API token (if DNS_CLI_WEB_TOKEN set)</label>
+        <input id="api_token" class="min-h-11 w-full rounded-lg border border-line bg-soft px-3 py-2" type="password" autocomplete="off" placeholder="optional — session only"/>
+      </div>
+      <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
+        <div>
+          <label class="mb-1 block text-sm text-mist" for="input">input list (relative path)</label>
+          <input id="input" class="min-h-11 w-full rounded-lg border border-line bg-soft px-3 py-2" value="testdata/dns_sample.txt"/>
+        </div>
+        <div>
+          <label class="mb-1 block text-sm text-mist" for="profile">profile</label>
+          <input id="profile" class="min-h-11 w-full rounded-lg border border-line bg-soft px-3 py-2" value="mame"/>
+        </div>
+        <div>
+          <label class="mb-1 block text-sm text-mist" for="preset">Preset</label>
+          <select id="preset" class="min-h-11 w-full rounded-lg border border-line bg-soft px-3 py-2">
+            <option value="low" selected>low (۵۱۲MB / تک‌هسته)</option>
+            <option value="normal">normal</option>
+            <option value="fast">fast</option>
+          </select>
+        </div>
+        <div>
+          <label class="mb-1 block text-sm text-mist" for="limit">حداکثر IP</label>
+          <input id="limit" class="min-h-11 w-full rounded-lg border border-line bg-soft px-3 py-2" type="number" min="1" value="6"/>
+        </div>
+        <div>
+          <label class="mb-1 block text-sm text-mist" for="generate_kinds">generate</label>
+          <select id="generate_kinds" class="min-h-11 w-full rounded-lg border border-line bg-soft px-3 py-2">
+            <option value="all" selected>all</option>
+            <option value="netmod">netmod</option>
+            <option value="dnstt">dnstt</option>
+            <option value="slipnet">slipnet</option>
+          </select>
+        </div>
+        <div>
+          <label class="mb-1 block text-sm text-mist" for="backup_mode">بکاپ</label>
+          <select id="backup_mode" class="min-h-11 w-full rounded-lg border border-line bg-soft px-3 py-2">
+            <option value="kit" selected>kit</option>
+            <option value="data">data</option>
+            <option value="full">full</option>
+          </select>
+        </div>
+      </div>
+      <div class="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2">
+        <label class="flex min-h-10 items-center gap-2 text-sm"><input type="checkbox" id="skip_slipnet" checked/> skip_slipnet</label>
+        <label class="flex min-h-10 items-center gap-2 text-sm"><input type="checkbox" id="no_dmvpn" checked/> no_dmvpn</label>
+        <label class="flex min-h-10 items-center gap-2 text-sm"><input type="checkbox" id="quiet" checked/> quiet</label>
+        <label class="flex min-h-10 items-center gap-2 text-sm"><input type="checkbox" id="auto_archive"/> auto_archive</label>
+        <label class="flex min-h-10 items-center gap-2 text-sm"><input type="checkbox" id="auto_backup"/> auto_backup</label>
+        <label class="flex min-h-10 items-center gap-2 text-sm"><input type="checkbox" id="slipnet_probe"/> slipnet_probe</label>
+        <label class="flex min-h-10 items-center gap-2 text-sm"><input type="checkbox" id="dry_run"/> dry_run</label>
+        <label class="flex min-h-10 items-center gap-2 text-sm"><input type="checkbox" id="enable_tcp"/> enable_tcp</label>
+        <label class="flex min-h-10 items-center gap-2 text-sm"><input type="checkbox" id="ok_only"/> ok_only</label>
+        <label class="flex min-h-10 items-center gap-2 text-sm"><input type="checkbox" id="no_ping"/> no_ping</label>
+      </div>
+    </div>
+    <details class="rounded-xl border border-dashed border-line p-3" open>
+      <summary class="flex min-h-10 cursor-pointer items-center font-semibold">Free CLI command</summary>
+      <textarea id="cmdline" class="mt-3 min-h-[88px] w-full resize-y rounded-lg border border-line bg-soft px-3 py-2 font-mono text-sm" placeholder="generate all --profile mame --resolvers testdata/resolvers_sample.json --limit 2 --no-dmvpn"></textarea>
+      <div class="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-2">
+        <button class="btn-secondary" type="button" data-cmd="generate all --profile mame --resolvers testdata/resolvers_sample.json --limit 2 --no-dmvpn">sample generate</button>
+        <button class="btn-secondary" type="button" data-cmd="profiles list">profiles list</button>
+        <button class="btn-secondary" type="button" data-cmd="slipnet which">slipnet which</button>
+        <button class="btn-secondary" type="button" data-cmd="status">status</button>
+        <button class="btn-primary" type="button" data-act="exec">Run command</button>
+      </div>
+    </details>
+  </section>
+
+  <section id="view-guide" class="hidden">
+    <div class="panel prose-sm">
+      <h3 class="m-0 mb-2 text-base font-semibold">Guide (beginner)</h3>
+      <ol class="list-decimal pr-5 text-sm leading-7">
+        <li>Download Release binary <b>or</b> build: <code class="rounded bg-soft px-1">cargo build -p dns-cli --release</code></li>
+        <li>Run inside kit folder: <code class="rounded bg-soft px-1">dns-cli</code> (no args) → menu</li>
+        <li>Web: <code class="rounded bg-soft px-1">dns-cli serve</code> → http://127.0.0.1:8787</li>
+        <li>First time: <code class="rounded bg-soft px-1">init</code> then <code class="rounded bg-soft px-1">doctor</code></li>
+        <li>API paths are relative only; full work_dir is masked.</li>
+      </ol>
+    </div>
+  </section>
+
+  <section id="view-status" class="hidden">
+    <div class="panel">
+      <h3 class="m-0 mb-2 text-base font-semibold">SQLite history</h3>
+      <div class="overflow-x-auto">
+        <table class="w-full border-collapse text-sm">
+          <thead><tr class="text-mist"><th class="border-b border-line p-2 text-right">time</th><th class="border-b border-line p-2 text-right">id</th><th class="border-b border-line p-2 text-right">kind</th><th class="border-b border-line p-2 text-right">profile</th><th class="border-b border-line p-2 text-right">status</th><th class="border-b border-line p-2 text-right">count</th></tr></thead>
+          <tbody id="rows"><tr><td class="p-2" colspan="6">…</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <p class="mt-6 text-center text-sm text-mist">Offline Tailwind · UTF-8 · docs/SECURITY_WEB.md</p>
+</main>
+
+<script>
+const $ = (id) => document.getElementById(id);
+let lastJobIds = new Set();
+const tokKey = "dns_cli_web_token";
+$("api_token").value = sessionStorage.getItem(tokKey) || "";
+$("api_token").addEventListener("change", () => {
+  sessionStorage.setItem(tokKey, $("api_token").value.trim());
+});
+function headers() {
+  const h = { "Content-Type": "application/json" };
+  const t = ($("api_token").value || sessionStorage.getItem(tokKey) || "").trim();
+  if (t) h["X-DNS-CLI-Token"] = t;
+  return h;
+}
+function showToast(msg, err) {
+  const t = $("toast");
+  t.textContent = msg;
+  t.className = "mt-3 max-h-56 overflow-auto whitespace-pre-wrap break-words rounded-lg px-3 py-2 " + (err ? "bg-red-50 text-bad" : "bg-accent-soft");
+}
+function setBusy(b) {
+  document.querySelectorAll("button[data-act],button[data-cmd]").forEach(el => { el.disabled = !!b; });
+}
+function bool(id) { return !!($(id) && $(id).checked); }
+function payload() {
+  return {
+    input: $("input").value.trim() || "testdata/dns_sample.txt",
+    profile: $("profile").value.trim() || "mame",
+    preset: $("preset").value || "low",
+    limit: $("limit").value || "6",
+    generate_kinds: $("generate_kinds").value || "all",
+    skip_slipnet: bool("skip_slipnet"),
+    no_dmvpn: bool("no_dmvpn"),
+    quiet: bool("quiet"),
+    auto_archive: bool("auto_archive"),
+    auto_backup: bool("auto_backup"),
+    slipnet_probe: bool("slipnet_probe"),
+    dry_run: bool("dry_run"),
+    enable_tcp: bool("enable_tcp"),
+    ok_only: bool("ok_only"),
+    no_ping: bool("no_ping")
+  };
+}
+async function post(url, body) {
+  setBusy(true);
+  try {
+    const r = await fetch(url, { method: "POST", headers: headers(), body: JSON.stringify(body) });
+    const j = await r.json();
+    if (j.ok) showToast("started OK  " + j.job_id);
+    else showToast(j.error || ("HTTP " + r.status), true);
+    await load();
+  } catch (e) {
+    showToast("server not reachable", true);
+  } finally { setBusy(false); }
+}
+function statusLabel(s) {
+  if (s === "ok") return '<span class="text-ok">ok</span>';
+  if (s === "error") return '<span class="text-bad">error</span>';
+  if (s === "running") return '<span class="text-warn">running</span>';
+  return s;
+}
+function esc(s) {
+  return String(s || "").replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+async function load() {
+  try {
+    const s = await (await fetch("/api/stats", { headers: headers() })).json();
+    if (s.error && String(s.error).includes("unauthorized")) {
+      $("banner").className = "mb-4 rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 text-amber-900";
+      $("banner").textContent = "توکن لازم است — در زبانهٔ گزینه‌ها وارد کن (DNS_CLI_WEB_TOKEN)";
+      return;
+    }
+    $("wd").textContent = "work_dir: " + (s.work_dir || "—");
+    const banner = $("banner");
+    if (s.ready === false) {
+      banner.className = "mb-4 rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 text-amber-900";
+      banner.textContent = s.hint || "محیط آماده نیست";
+    } else {
+      banner.className = "mb-4 rounded-xl border border-green-300 bg-green-50 px-4 py-3 text-ok";
+      banner.textContent = "محیط آماده · مسیر کامل در API نیست · preset پیشنهادی: low";
+    }
+    $("stats").innerHTML =
+      `<div class="rounded-xl border border-line bg-white p-3 shadow-sm"><b class="block text-xl">${s.runs ?? 0}</b><span class="text-sm text-mist">اجراها</span></div>
+       <div class="rounded-xl border border-line bg-white p-3 shadow-sm"><b class="block text-xl">${s.ok ?? 0}</b><span class="text-sm text-mist">موفق</span></div>
+       <div class="rounded-xl border border-line bg-white p-3 shadow-sm"><b class="block text-xl">${s.artifacts ?? 0}</b><span class="text-sm text-mist">خروجی</span></div>
+       <div class="rounded-xl border border-line bg-white p-3 shadow-sm"><b class="block text-xl">${s.job_running ? "بله" : "خیر"}</b><span class="text-sm text-mist">مشغول؟</span></div>`;
+    const jobs = await (await fetch("/api/jobs", { headers: headers() })).json();
+    if (Array.isArray(jobs)) {
+      for (const j of jobs) {
+        if (j.status === "error" && !lastJobIds.has(j.id + ":err")) {
+          lastJobIds.add(j.id + ":err");
+          showToast("خطا «" + j.kind + "»:\n" + (j.message || ""), true);
+        }
+        if (j.status === "ok") lastJobIds.add(j.id + ":ok");
+      }
+      $("jobs").innerHTML = jobs.length
+        ? jobs.map(j => `<tr>
+            <td class="border-b border-line p-2 align-top"><code>${esc(j.id)}</code></td>
+            <td class="border-b border-line p-2 align-top">${esc(j.kind)}</td>
+            <td class="border-b border-line p-2 align-top">${statusLabel(j.status)}</td>
+            <td class="border-b border-line p-2 align-top"><pre class="m-0 max-w-md whitespace-pre-wrap font-[inherit]">${esc(j.message || "")}</pre></td>
+          </tr>`).join("")
+        : '<tr><td class="p-2" colspan="4">هنوز کاری نزدی</td></tr>';
+    }
+    const runs = await (await fetch("/api/runs", { headers: headers() })).json();
+    if (Array.isArray(runs)) {
+      $("rows").innerHTML = runs.length
+        ? runs.map(r => `<tr>
+            <td class="border-b border-line p-2">${esc((r.created_at||"").replace("T"," ").slice(0,19))}</td>
+            <td class="border-b border-line p-2"><code>${esc(r.id)}</code></td>
+            <td class="border-b border-line p-2">${esc(r.kind)}</td>
+            <td class="border-b border-line p-2">${esc(r.profile||"—")}</td>
+            <td class="border-b border-line p-2">${statusLabel(r.status)}</td>
+            <td class="border-b border-line p-2">${esc(r.working_count)}</td>
+          </tr>`).join("")
+        : '<tr><td class="p-2" colspan="6">خالی</td></tr>';
+    }
+  } catch (_) {
+    $("banner").className = "mb-4 rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 text-amber-900";
+    $("banner").textContent = "سرور قطع است";
+  }
+}
+function switchTab(name) {
+  ["home","opts","guide","status"].forEach(t => {
+    const view = $("view-" + t), tab = $("tab-" + t);
+    if (view) view.classList.toggle("hidden", t !== name);
+    if (tab) {
+      tab.classList.toggle("nav-pill-active", t === name);
+      if (t !== name) tab.classList.remove("nav-pill-active");
+    }
+  });
+  if (location.hash !== "#" + name) history.replaceState(null, "", "#" + name);
+}
+document.querySelectorAll(".nav-pill").forEach(btn => btn.addEventListener("click", () => switchTab(btn.dataset.tab)));
+document.querySelectorAll("[data-act]").forEach(btn => {
+  btn.addEventListener("click", () => {
+    const a = btn.dataset.act;
+    if (a === "doctor") return post("/api/exec", { argv: ["doctor"] });
+    if (a === "scan") return post("/api/scan", payload());
+    if (a === "pipeline") return post("/api/pipeline", payload());
+    if (a === "backup") return post("/api/exec", { argv: ["backup","create","--mode",$("backup_mode").value||"kit","--keep","15","--label","web"] });
+    if (a === "init") return post("/api/exec", { argv: ["init"] });
+    if (a === "info") return post("/api/exec", { argv: ["info"] });
+    if (a === "exec") {
+      const line = $("cmdline").value.trim();
+      if (!line) { showToast("دستور خالی", true); return; }
+      return post("/api/exec", { cmdline: line });
+    }
+  });
+});
+document.querySelectorAll("[data-cmd]").forEach(btn => btn.addEventListener("click", () => { $("cmdline").value = btn.dataset.cmd; }));
+const initial = (location.hash || "#home").slice(1);
+switchTab(["home","opts","guide","status"].includes(initial) ? initial : "home");
+load();
+setInterval(load, 2000);
+</script>
+</body>
+</html>

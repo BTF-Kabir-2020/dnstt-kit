@@ -1,0 +1,12 @@
+name: Question
+description: How do I run scan / web / Docker?
+title: "[Q]: "
+labels: ["question"]
+body:
+  - type: textarea
+    id: q
+    attributes:
+      label: Question
+      description: Check docs/TUTORIAL.md and docs/WEB.md first
+    validations:
+      required: true

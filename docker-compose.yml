@@ -1,0 +1,14 @@
+services:
+  dnstt:
+    build: .
+    ports:
+      - "127.0.0.1:8787:8787"
+    volumes:
+      - ./:/work
+    working_dir: /work
+    environment:
+      DNS_CLI_WEB_TOKEN: ${DNS_CLI_WEB_TOKEN:-}
+      DNS_CLI_WORK_DIR: /work
+    command: ["serve", "--bind", "0.0.0.0:8787"]
+    mem_limit: 512m
+    cpus: 1.0

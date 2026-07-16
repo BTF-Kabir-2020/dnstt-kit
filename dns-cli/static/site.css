@@ -1,0 +1,51 @@
+/* Component helpers only — utilities come from local Play CDN (tailwindcss.js) */
+.btn-primary {
+  min-height: 52px;
+  border-radius: 0.75rem;
+  background: #0b6bcb;
+  color: #fff;
+  font-weight: 600;
+  padding: 0.75rem 1rem;
+  text-align: right;
+  border: none;
+  cursor: pointer;
+}
+.btn-primary:disabled { opacity: 0.55; cursor: not-allowed; }
+.btn-secondary {
+  min-height: 52px;
+  border-radius: 0.75rem;
+  background: transparent;
+  color: #15202b;
+  font-weight: 600;
+  padding: 0.75rem 1rem;
+  text-align: right;
+  border: 1px solid #d7dee7;
+  cursor: pointer;
+}
+.btn-secondary:disabled { opacity: 0.55; cursor: not-allowed; }
+.panel {
+  margin: 1rem 0;
+  border-radius: 14px;
+  border: 1px solid #d7dee7;
+  background: #fff;
+  padding: 1rem;
+  box-shadow: 0 1px 2px rgba(0,0,0,.05);
+}
+.nav-pill {
+  min-height: 2.5rem;
+  border-radius: 9999px;
+  border: 1px solid #d7dee7;
+  padding: 0.5rem 1rem;
+  background: transparent;
+  color: #15202b;
+  cursor: pointer;
+}
+.nav-pill-active {
+  border-color: #0b6bcb;
+  background: #0b6bcb;
+  color: #fff;
+}
+@media (prefers-color-scheme: dark) {
+  .panel { background: #1a2332; border-color: #2a384c; }
+  .btn-secondary, .nav-pill { color: #e7ecf3; border-color: #2a384c; }
+}

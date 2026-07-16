@@ -1,0 +1,74 @@
+﻿# --- build ---
+/target/
+**/target/
+**/*.rs.bk
+
+# --- runtime / local data ---
+runs/
+archives/
+backups/
+_restore_tmp/
+dist/
+out/
+logs/
+data/
+DMVPN/
+*.pdb
+*.sqlite
+*.sqlite-journal
+*.sqlite-wal
+
+# --- generated / local lists ---
+resolvers.json
+dns_ok_and_dnsonly_ips.txt
+e2e_passed.txt
+
+# --- secrets ---
+.env
+.env.*
+!.env.example
+config/profiles.json
+*.pem
+*.key
+
+# --- vendor ---
+vendor/slipnet/**/slipnet.exe
+vendor/slipnet/**/slipnet
+vendor/slipnet/**/VERSION
+!vendor/slipnet/README.md
+
+# --- internal notes (not published to GitHub) ---
+docs/_internal/
+docs/STATUS.md
+docs/COMPETITORS.md
+docs/EDITING.md
+docs/CI_QUALITY.md
+docs/GITHUB_DEPLOY.md
+docs/ARCHITECTURE.md
+
+# --- IDE / OS ---
+.idea/
+.vscode/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# --- Python ---
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# --- local scratch ---
+/tools/
+
+# --- local agent helpers (never publish) ---
+scripts/_commit_clean.py
+scripts/_strip_coauthor.py
+scripts/_strip-coauthor.*
+scripts/_publish_clean.py
+scripts/_recreate_repo.py
+scripts/_fresh_repo.py
+

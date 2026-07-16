@@ -1,0 +1,24 @@
+# تست‌ها و کیفیت
+
+```powershell
+.\scripts\quality.ps1
+# یا جدا:
+cargo fmt --all -- --check
+cargo clippy --workspace --all-targets -- -D warnings
+cargo test --workspace
+.\scripts\smoke.ps1
+.\scripts\build-release.ps1
+```
+
+## پوشش
+
+| لایه | محتوا |
+|------|--------|
+| rustfmt | قالب اجباری در CI |
+| clippy | `-D warnings` در CI |
+| unit | Kryo / NetMod / SlipNet / verify / resolvers |
+| CLI | generate، doctor، backup، env، completion، … |
+| real DNS | اسکن عمومی + pipeline |
+| release | `cargo build --release` + artifact Actions |
+
+جزئیات کیفیت: `.\scripts\quality.ps1` (rustfmt + clippy + test)
