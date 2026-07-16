@@ -1,0 +1,91 @@
+                    DNSTT-KIT NON-COMMERCIAL LICENSE
+                    ================================
+                         Version 1.0 — July 2026
+
+Copyright (c) 2026 BTF Kabir
+Intended repository: https://github.com/BTF-Kabir-2020/dnstt-kit
+
+By using, copying, modifying, or distributing this software, you agree
+to be bound by the terms of this license.
+
+────────────────────────────────────────────────────────────────────────
+                        TERMS AND CONDITIONS
+────────────────────────────────────────────────────────────────────────
+
+1. GRANT OF LICENSE
+   This license grants you a free, non-exclusive, non-transferable,
+   revocable license to use, copy, and modify this software SOLELY for
+   PERSONAL, NON-COMMERCIAL, EDUCATIONAL, and RESEARCH purposes.
+
+2. COMMERCIAL USE IS STRICTLY PROHIBITED
+   You may NOT use this software, or any derivative work thereof, for
+   any commercial purpose, including but not limited to:
+     a) Selling, sublicensing, or distributing for monetary gain.
+     b) Offering as a paid service (SaaS, consulting, etc.).
+     c) Bundling with commercial products or services.
+     d) Generating revenue through advertisements or sponsorships
+        related to this software.
+   Any commercial use requires an explicit written license from the
+   copyright holder.
+
+3. ATTRIBUTION AND OWNERSHIP
+   a) You must retain the original copyright notice and this license
+      in all copies or substantial portions of the software.
+   b) You may NOT claim authorship or ownership of this software
+      or any derivative work.
+   c) If you distribute or publicly share this software, you must
+      clearly credit BTF Kabir as the original author and link to the
+      official repository when published.
+   d) You may NOT remove, alter, or obscure any copyright notices,
+      license texts, or attribution markers.
+
+4. MODIFICATION AND REDISTRIBUTION
+   a) You may modify this software for personal use.
+   b) You may distribute modified versions ONLY under this same
+      non-commercial license (ShareAlike).
+   c) You must clearly mark modifications.
+   d) You may NOT distribute modified versions under a different
+      name or brand that could be confused with the original.
+
+5. ANTI-MISUSE
+   a) You may NOT use this software to engage in, facilitate, or
+      promote illegal activity.
+   b) You may NOT use the web panel / API as an open internet attack
+      surface (bind to localhost unless you understand the risk).
+   c) The author(s) reserve the right to revoke this license for misuse.
+
+5b. BINARY DISTRIBUTION AND SECURITY SOFTWARE
+   Prebuilt binaries may be distributed via the official GitHub Releases
+   page of the intended repository. They are provided unsigned unless
+   otherwise stated. Heuristic antivirus products may incorrectly flag
+   unsigned educational CLI tools. Such false positives do not change
+   the license terms. Prefer building from source when in doubt.
+   Redistributors must not strip the LICENSE or copyright notices from
+   packages that include binaries.
+
+6. DISCLAIMER OF WARRANTY
+   THIS SOFTWARE IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND.
+   THE AUTHOR(S) ARE NOT LIABLE FOR ANY DAMAGES ARISING FROM USE.
+
+7. LIMITATION OF LIABILITY
+   IN NO EVENT SHALL THE AUTHOR(S) BE LIABLE FOR ANY CLAIM OR DAMAGES
+   ARISING FROM THE SOFTWARE OR ITS USE.
+
+8. TERMINATION
+   Violation of any term terminates your rights automatically.
+
+9. GOVERNING LAW
+   International copyright law; good-faith negotiation before litigation.
+
+────────────────────────────────────────────────────────────────────────
+                    SUMMARY (NON-LEGAL) / خلاصه
+────────────────────────────────────────────────────────────────────────
+
+  ✅  Personal / Education / Research — Allowed
+  ✅  Modification with attribution — Allowed
+  ❌  Commercial use — FORBIDDEN
+  ❌  Claiming as own work — FORBIDDEN
+  ❌  Illegal use / open abuse of public API — FORBIDDEN
+
+  مجوز غیرتجاری dnstt-kit — استفاده شخصی/آموزشی آزاد؛ تجاری ممنوع؛
+  انتساب به BTF Kabir الزامی است. جزئیات کامل در متن انگلیسی بالا.

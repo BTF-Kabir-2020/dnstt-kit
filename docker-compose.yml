@@ -1,0 +1,27 @@
+# Local web panel — host bind is 127.0.0.1 only (not public LAN).
+# Inside container bind 0.0.0.0 so the published port works.
+services:
+  dnstt:
+    build: .
+    image: dnstt-kit:local
+    ports:
+      - "127.0.0.1:8787:8787"
+    volumes:
+      - ./:/work
+    working_dir: /work
+    # Bind-mount needs host UID write access for runs/ backups/
+    user: "0:0"
+    environment:
+      DNS_CLI_WEB_TOKEN: ${DNS_CLI_WEB_TOKEN:-}
+      DNS_CLI_WORK_DIR: /work
+      DNS_CLI_BIND: 0.0.0.0:8787
+    command: ["serve", "--bind", "0.0.0.0:8787"]
+    mem_limit: 512m
+    cpus: "1.0"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "dns-cli", "info"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s

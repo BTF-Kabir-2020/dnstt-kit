@@ -1,0 +1,7 @@
+# rustfmt — سبک کد اجباری در CI (`cargo fmt --check`)
+edition = "2021"
+max_width = 100
+use_small_heuristics = "Default"
+newline_style = "Unix"
+use_field_init_shorthand = true
+use_try_shorthand = true

@@ -1,0 +1,151 @@
+# =============================================================================
+# dnstt-kit Release — tag v* → multi-OS binaries (dns-cli only)
+# =============================================================================
+# Does NOT ship slipnet. slipnet stays optional under vendor/slipnet/<triple>/
+# (offline-first; user may `dns-cli slipnet fetch` locally if they want).
+# =============================================================================
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  CARGO_TERM_COLOR: always
+  DNS_CLI_CI: "1"
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            artifact: dns-cli.exe
+            asset: dnstt-kit-windows-x64.exe
+          - os: ubuntu-latest
+            artifact: dns-cli
+            asset: dnstt-kit-linux-x64
+          - os: macos-latest
+            artifact: dns-cli
+            asset: dnstt-kit-macos-arm64
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v5
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - name: Build release
+        run: cargo build -p dns-cli --release
+      - name: Stage asset
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p dist
+          SRC="target/release/${{ matrix.artifact }}"
+          test -f "$SRC"
+          cp "$SRC" "dist/${{ matrix.asset }}"
+          cp LICENSE README.md dist/
+          # sanity: binary runs without slipnet
+          "dist/${{ matrix.asset }}" info || true
+          ls -la dist/
+      - name: Upload artifact
+        uses: actions/upload-artifact@v5
+        with:
+          name: ${{ matrix.asset }}
+          path: |
+            dist/${{ matrix.asset }}
+            dist/LICENSE
+            dist/README.md
+
+  release-linux-aarch64:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-unknown-linux-gnu
+      - uses: Swatinem/rust-cache@v2
+      - name: Install linker
+        run: sudo apt-get update && sudo apt-get install -y gcc-aarch64-linux-gnu
+      - name: Cross build
+        env:
+          CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER: aarch64-linux-gnu-gcc
+        run: cargo build -p dns-cli --release --target aarch64-unknown-linux-gnu
+      - name: Stage
+        run: |
+          mkdir -p dist
+          cp target/aarch64-unknown-linux-gnu/release/dns-cli dist/dnstt-kit-linux-arm64
+          cp LICENSE README.md dist/
+      - uses: actions/upload-artifact@v5
+        with:
+          name: dnstt-kit-linux-arm64
+          path: |
+            dist/dnstt-kit-linux-arm64
+            dist/LICENSE
+            dist/README.md
+
+  publish:
+    needs: [release, release-linux-aarch64]
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/v')
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/download-artifact@v5
+        with:
+          path: artifacts
+      - name: Assemble release folder + checksums
+        run: |
+          set -euo pipefail
+          mkdir -p dist
+          find artifacts -type f -name 'dnstt-kit-*' -exec cp -f {} dist/ \;
+          cp LICENSE README.md dist/
+          cd dist
+          # only binaries in checksums (not LICENSE/README)
+          sha256sum dnstt-kit-* | tee SHA256SUMS.txt
+          ls -la
+      - name: GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: dnstt-kit ${{ github.ref_name }}
+          draft: false
+          generate_release_notes: false
+          body: |
+            ## dnstt-kit ${{ github.ref_name }}
+
+            Official **dns-cli** builds (GitHub Actions). Author: **BTF Kabir** (`@BTF-Kabir-2020`).
+
+            ### Download
+            | File | Platform |
+            |------|----------|
+            | `dnstt-kit-windows-x64.exe` | Windows 64-bit |
+            | `dnstt-kit-linux-x64` | Linux x86_64 |
+            | `dnstt-kit-linux-arm64` | Linux ARM64 |
+            | `dnstt-kit-macos-arm64` | macOS Apple Silicon |
+            | `LICENSE` · `README.md` · `SHA256SUMS.txt` | docs + checksums |
+
+            ### slipnet (optional, separate)
+            These releases **do not include** slipnet. Kit is offline-first:
+            - put binary under `vendor/slipnet/<windows-x86_64|linux-x86_64|linux-aarch64>/`
+            - or run `dns-cli slipnet fetch` yourself when you want a download
+            - pipelines work with `--skip-slipnet` (default-friendly for beginners)
+
+            ### First run (Windows)
+            1. Extract **Source code** zip (needs `testdata/` + `config/`)
+            2. Put `dnstt-kit-windows-x64.exe` in that folder
+            3. Run with **no args** → menu
+            4. Or: `dnstt-kit-windows-x64.exe serve` → http://127.0.0.1:8787
+
+            ### Antivirus
+            Unsigned binaries may be flagged by heuristic AV (false positive). Prefer build from source or verify `SHA256SUMS.txt`.
+
+            Non-commercial — see `LICENSE`.
+          files: dist/*

@@ -1,0 +1,26 @@
+# Dependabot — keep CI quiet; avoid surprise major breaks with slipnet/sqlite stack
+version: 2
+updates:
+  - package-ecosystem: cargo
+    directory: "/"
+    schedule:
+      interval: monthly
+    open-pull-requests-limit: 3
+    labels:
+      - dependencies
+    # Majors often break APIs (rusqlite / zip / rand / thiserror) — review manually
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
+
+  - package-ecosystem: github-actions
+    directory: "/"
+    schedule:
+      interval: monthly
+    open-pull-requests-limit: 2
+    labels:
+      - dependencies
+    groups:
+      github-actions:
+        patterns:
+          - "*"
