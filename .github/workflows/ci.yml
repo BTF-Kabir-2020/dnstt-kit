@@ -35,7 +35,7 @@ jobs:
     name: fmt + clippy
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
       - uses: dtolnay/rust-toolchain@stable
         with:
           components: rustfmt, clippy
@@ -61,7 +61,7 @@ jobs:
             asset: dnstt-kit-macos-arm64
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
 
@@ -110,7 +110,7 @@ jobs:
           cp "$BIN" "dist/${{ matrix.asset }}"
           ls -la dist/
 
-      - uses: actions/upload-artifact@v5
+      - uses: actions/upload-artifact@v7
         with:
           name: ${{ matrix.asset }}
           path: dist/${{ matrix.asset }}
@@ -133,7 +133,7 @@ jobs:
             linker: ""
             asset: dnstt-kit-linux-x64-musl
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
       - uses: dtolnay/rust-toolchain@stable
         with:
           targets: ${{ matrix.target }}
@@ -151,7 +151,7 @@ jobs:
         run: |
           mkdir -p dist
           cp "target/${{ matrix.target }}/release/dns-cli" "dist/${{ matrix.asset }}"
-      - uses: actions/upload-artifact@v5
+      - uses: actions/upload-artifact@v7
         if: success()
         with:
           name: ${{ matrix.asset }}
