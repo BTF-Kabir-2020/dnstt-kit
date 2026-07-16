@@ -1,7 +1,12 @@
 # =============================================================================
-# dnstt-kit CI — کیفیت کد (rustfmt + clippy) + تست + بیلد چند OS
-# الگوی مشابه cs16-tool-v2: fmt --check و clippy -D warnings اجباری‌اند.
-# Actions: checkout/upload-artifact روی Node 24 (بدون هشدار Node 20).
+# dnstt-kit CI — multi-OS, offline-first (no slipnet download)
+# =============================================================================
+# Goals:
+# - rustfmt + clippy gate
+# - test + release build on Windows / Linux / macOS
+# - cross Linux aarch64 (+ musl best-effort)
+# - NEVER run `slipnet fetch` (third-party binary; offline vendor only)
+# - Pipelines in smoke use --skip-slipnet so missing vendor/slipnet is OK
 # =============================================================================
 name: CI
 
@@ -12,12 +17,20 @@ on:
     branches: [main, master]
   workflow_dispatch:
 
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
 env:
   CARGO_TERM_COLOR: always
   CARGO_TARGET_DIR: target
+  # Do not encourage accidental fetch in child processes
+  DNS_CLI_CI: "1"
 
 jobs:
-  # --- دروازه کیفیت (مثل lint، ولی برای Rust: rustfmt + clippy) ---
   quality:
     name: fmt + clippy
     runs-on: ubuntu-latest
@@ -38,39 +51,70 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
+        include:
+          - os: ubuntu-latest
+            asset: dnstt-kit-linux-x64
+          - os: windows-latest
+            asset: dnstt-kit-windows-x64.exe
+            bin_ext: .exe
+          - os: macos-latest
+            asset: dnstt-kit-macos-arm64
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v5
       - uses: dtolnay/rust-toolchain@stable
-        with:
-          components: clippy
       - uses: Swatinem/rust-cache@v2
-      - name: Test
+
+      - name: Test (workspace)
         run: cargo test --workspace -- --test-threads=2
-      - name: Build release + lib
+
+      - name: Build release + scanner_core
         run: |
           cargo build -p dns-cli --release
           cargo build -p scanner_core --release
-      - name: Smoke
+
+      - name: Smoke (no slipnet fetch)
         shell: bash
         run: |
+          set -euo pipefail
           BIN=target/release/dns-cli
-          [[ -f "$BIN" ]] || BIN=target/release/dns-cli.exe
+          if [[ ! -f "$BIN" ]]; then BIN=target/release/dns-cli.exe; fi
+          echo "== binary: $BIN =="
+          "$BIN" --version || "$BIN" -V || true
           "$BIN" init || true
+          # doctor may WARN if vendor/slipnet missing — that is OK offline-first
           "$BIN" doctor || true
           "$BIN" info
+          # which: success only if vendor present; failure is fine on CI
+          "$BIN" slipnet which || true
+          # prove kit works without slipnet binary on every OS (incl. macOS where
+          # platform_triple may be unknown / no upstream asset)
+          "$BIN" pipeline run \
+            --input testdata/dns_sample.txt \
+            --profile mame \
+            --preset low \
+            --limit 2 \
+            --skip-slipnet \
+            --no-dmvpn \
+            --quiet \
+            --run-id "ci-smoke-${{ matrix.os }}"
           "$BIN" backup create --mode kit --keep 5 --label ci
+          # never call: slipnet fetch
+
+      - name: Stage named artifact
+        shell: bash
+        run: |
+          mkdir -p dist
+          BIN=target/release/dns-cli
+          if [[ ! -f "$BIN" ]]; then BIN=target/release/dns-cli.exe; fi
+          cp "$BIN" "dist/${{ matrix.asset }}"
+          ls -la dist/
+
       - uses: actions/upload-artifact@v5
         with:
-          name: dns-cli-${{ matrix.os }}
-          path: |
-            target/release/dns-cli
-            target/release/dns-cli.exe
-            target/release/scanner_core.dll
-            target/release/libscanner_core.so
-            target/release/libscanner_core.dylib
-          if-no-files-found: warn
+          name: ${{ matrix.asset }}
+          path: dist/${{ matrix.asset }}
+          if-no-files-found: error
 
   cross-linux:
     name: cross ${{ matrix.target }}
@@ -83,9 +127,11 @@ jobs:
           - target: aarch64-unknown-linux-gnu
             apt: gcc-aarch64-linux-gnu
             linker: aarch64-linux-gnu-gcc
+            asset: dnstt-kit-linux-arm64
           - target: x86_64-unknown-linux-musl
             apt: musl-tools
             linker: ""
+            asset: dnstt-kit-linux-x64-musl
     steps:
       - uses: actions/checkout@v5
       - uses: dtolnay/rust-toolchain@stable
@@ -95,13 +141,19 @@ jobs:
       - name: Install linker tools
         run: sudo apt-get update && sudo apt-get install -y ${{ matrix.apt }}
       - name: Cross build
+        # musl is best-effort (linker/env variance on runners)
         continue-on-error: ${{ matrix.target == 'x86_64-unknown-linux-musl' }}
         env:
           CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER: ${{ matrix.linker }}
         run: cargo build -p dns-cli --release --target ${{ matrix.target }}
+      - name: Stage
+        if: success()
+        run: |
+          mkdir -p dist
+          cp "target/${{ matrix.target }}/release/dns-cli" "dist/${{ matrix.asset }}"
       - uses: actions/upload-artifact@v5
         if: success()
         with:
-          name: dns-cli-${{ matrix.target }}
-          path: target/${{ matrix.target }}/release/dns-cli
+          name: ${{ matrix.asset }}
+          path: dist/${{ matrix.asset }}
           if-no-files-found: warn
