@@ -98,7 +98,7 @@ jobs:
           sha256sum dnstt-kit-* | tee SHA256SUMS.txt
           ls -la
       - name: GitHub Release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           name: dnstt-kit ${{ github.ref_name }}
           draft: false
