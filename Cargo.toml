@@ -4,6 +4,6 @@ members = ["scanner-core", "dns-cli"]
 default-members = ["dns-cli"]
 
 [workspace.package]
-version = "0.1.0"
+version = "0.1.1"
 edition = "2021"
 license = "LicenseRef-NonCommercial"

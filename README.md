@@ -1,4 +1,4 @@
-# dnstt-kit (Rust) — v0.1.0
+# dnstt-kit (Rust) — v0.1.1
 
 [![CI](https://github.com/BTF-Kabir-2020/dnstt-kit/actions/workflows/ci.yml/badge.svg)](https://github.com/BTF-Kabir-2020/dnstt-kit/actions/workflows/ci.yml)
 [![License](https://img.shields.io/badge/license-Non--Commercial-blue)](LICENSE)
