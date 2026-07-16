@@ -8,7 +8,7 @@
 
 DNSTT toolkit: scan DNS resolvers, generate NetMod / NekoBox / SlipNet configs, optional offline slipnet, localhost web UI, backup helpers, Docker.
 
-Author: [BTF Kabir](https://github.com/BTF-Kabir-2020) · also: [CS-1.6-Tool-v2](https://github.com/BTF-Kabir-2020/CS-1.6-Tool-v2)
+Author: [BTF Kabir](https://github.com/BTF-Kabir-2020)
 
 **PRs welcome** — humans helping with code, docs, and tests are encouraged. See [CONTRIBUTING.md](CONTRIBUTING.md).
 
