@@ -1,59 +1,63 @@
-# FFI و پایتون (همهٔ سیستم‌ها بدون بازنویسی)
+# FFI / shared library (Python, JNI, Android)
 
-## ایده
-
-یک هستهٔ Rust (`scanner_core`) به‌صورت **DLL/SO/dylib** + باینری CLI برای هر OS.
+`scanner_core` builds as a **cdylib** so other languages can call the scanner without rewriting it.
 
 ```text
-┌─────────────┐     ctypes / JNI      ┌──────────────────┐
-│ Python/Java │ ───────────────────► │ scanner_core.dll │
-└─────────────┘                        └──────────────────┘
-┌─────────────┐     subprocess         ┌──────────────────┐
-│ Python/UI   │ ───────────────────► │ dns-cli[.exe]    │
-└─────────────┘                        └──────────────────┘
+Python / Java / Kotlin  --ctypes/JNI-->  scanner_core (.dll / .so / .dylib)
+Python / UI             --subprocess-->  dns-cli
 ```
 
-## بیلد lib
+## Prebuilt (GitHub Releases)
+
+Each tagged release ships:
+
+| Asset | Platform |
+|-------|----------|
+| `dnstt-kit-scanner_core-windows-x64.dll` | Windows |
+| `dnstt-kit-scanner_core-linux-x64.so` | Linux x64 |
+| `dnstt-kit-scanner_core-linux-arm64.so` | Linux ARM64 |
+| `dnstt-kit-scanner_core-macos-arm64.dylib` | macOS ARM |
+| `dnstt-kit-scanner_core-android-arm64-v8a.so` | Android arm64 |
+| `dnstt-kit-scanner_core-android-armeabi-v7a.so` | Android 32-bit ARM |
+
+Rename locally if your loader expects `scanner_core.dll` / `libscanner_core.so`.
+
+## Build locally
 
 ```powershell
 cargo build -p scanner_core --release
 .\scripts\build-release.ps1 -Lib
 ```
 
-خروجی نمونه:
+Outputs under `target/release/`:
 - Windows: `scanner_core.dll`
 - Linux: `libscanner_core.so`
 - macOS: `libscanner_core.dylib`
 
-## پایتون
+Android (needs NDK + `cargo-ndk`):
+
+```bash
+cargo ndk -t arm64-v8a -t armeabi-v7a -o dist/android build -p scanner_core --release
+```
+
+## C ABI
+
+- `scanner_run_from_file(path) -> *char` (JSON; caller frees)
+- `scanner_free_string(ptr)`
+
+## Python
 
 ```powershell
 python python\scanner_ffi.py testdata\dns_sample.txt
 ```
 
-تابع: `scanner_run_from_file` / `scanner_free_string` (C ABI).
+For a full pipeline from Python, subprocess `dns-cli` (or `run.py`).
 
-برای کل pipeline از پایتون، همان `dns-cli` را subprocess کن (یا `run.py`).
+## Practical map
 
-## GitHub Actions (بیلد برای همه)
-
-`.github/workflows/ci.yml`:
-
-| runner | خروجی |
-|--------|--------|
-| windows-latest | dns-cli.exe + dll |
-| ubuntu-latest | dns-cli + .so |
-| macos-latest | dns-cli + dylib |
-| cross aarch64-gnu | dns-cli لینوکس ARM (Termux-friendly) |
-| cross x86_64-musl | باینری استاتیک‌تر لینوکس |
-
-Artifactها از Actions قابل دانلودند — نیازی به کامپایل روی همهٔ لپ‌تاپ‌ها نیست.
-
-## توصیهٔ عملی
-
-| هدف | راه |
-|-----|-----|
-| کاربر نهایی ویندوز/لینوکس/مک | artifact CI یا `build-release` همان OS |
-| اندروید/جاوا | JNI روی `scanner_core` cdylib |
-| اسکریپت پایتون سریع | `scanner_ffi.py` یا `run.py pipeline ...` |
-| Termux | بیلد محلی aarch64 یا artifact aarch64-gnu |
+| Goal | Path |
+|------|------|
+| Desktop end user | Release CLI binary |
+| Python script | DLL/SO + `scanner_ffi.py`, or subprocess CLI |
+| Android / Java | ship Android `.so` into `jniLibs/<abi>/`, JNI or similar |
+| Termux | Linux ARM64 CLI or `.so` from Releases |

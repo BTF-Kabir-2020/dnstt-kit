@@ -101,19 +101,28 @@ jobs:
           "$BIN" backup create --mode kit --keep 5 --label ci
           # never call: slipnet fetch
 
-      - name: Stage named artifact
+      - name: Stage named artifact (CLI + lib)
         shell: bash
         run: |
+          set -euo pipefail
           mkdir -p dist
           BIN=target/release/dns-cli
           if [[ ! -f "$BIN" ]]; then BIN=target/release/dns-cli.exe; fi
           cp "$BIN" "dist/${{ matrix.asset }}"
+          # shared lib for FFI / mobile integrators
+          if [[ -f target/release/scanner_core.dll ]]; then
+            cp target/release/scanner_core.dll dist/dnstt-kit-scanner_core-windows-x64.dll
+          elif [[ -f target/release/libscanner_core.dylib ]]; then
+            cp target/release/libscanner_core.dylib dist/dnstt-kit-scanner_core-macos-arm64.dylib
+          elif [[ -f target/release/libscanner_core.so ]]; then
+            cp target/release/libscanner_core.so dist/dnstt-kit-scanner_core-linux-x64.so
+          fi
           ls -la dist/
 
       - uses: actions/upload-artifact@v5
         with:
           name: ${{ matrix.asset }}
-          path: dist/${{ matrix.asset }}
+          path: dist/*
           if-no-files-found: error
 
   cross-linux:

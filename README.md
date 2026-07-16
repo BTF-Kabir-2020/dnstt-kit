@@ -3,19 +3,22 @@
 [![CI](https://github.com/BTF-Kabir-2020/dnstt-kit/actions/workflows/ci.yml/badge.svg)](https://github.com/BTF-Kabir-2020/dnstt-kit/actions/workflows/ci.yml)
 [![License](https://img.shields.io/badge/license-Non--Commercial-blue)](LICENSE)
 [![Rust](https://img.shields.io/badge/rust-1.82%2B-orange?logo=rust)](https://www.rust-lang.org/)
+[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
 [![Release](https://img.shields.io/github/v/release/BTF-Kabir-2020/dnstt-kit)](https://github.com/BTF-Kabir-2020/dnstt-kit/releases)
 
 DNSTT toolkit: scan DNS resolvers, generate NetMod / NekoBox / SlipNet configs, optional offline slipnet, localhost web UI, backup helpers, Docker.
 
 Author: [BTF Kabir](https://github.com/BTF-Kabir-2020) · also: [CS-1.6-Tool-v2](https://github.com/BTF-Kabir-2020/CS-1.6-Tool-v2)
 
-PRs welcome — [CONTRIBUTING.md](CONTRIBUTING.md).
+**PRs welcome** — humans helping with code, docs, and tests are encouraged. See [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ---
 
 ## Downloads
 
 Prebuilt: [Releases](https://github.com/BTF-Kabir-2020/dnstt-kit/releases)
+
+### CLI
 
 | Asset | Platform |
 |-------|----------|
@@ -24,11 +27,22 @@ Prebuilt: [Releases](https://github.com/BTF-Kabir-2020/dnstt-kit/releases)
 | `dnstt-kit-linux-arm64` | Linux ARM64 |
 | `dnstt-kit-macos-arm64` | macOS Apple Silicon |
 
-Plus `LICENSE`, `README.md`, `SHA256SUMS.txt`.
+### Shared library (FFI — Python / JNI / Android)
+
+| Asset | Platform |
+|-------|----------|
+| `dnstt-kit-scanner_core-windows-x64.dll` | Windows |
+| `dnstt-kit-scanner_core-linux-x64.so` | Linux x64 |
+| `dnstt-kit-scanner_core-linux-arm64.so` | Linux ARM64 |
+| `dnstt-kit-scanner_core-macos-arm64.dylib` | macOS |
+| `dnstt-kit-scanner_core-android-arm64-v8a.so` | Android arm64 |
+| `dnstt-kit-scanner_core-android-armeabi-v7a.so` | Android armeabi-v7a |
+
+Plus `LICENSE`, `README.md`, `SHA256SUMS.txt`. Details: [docs/FFI_PYTHON.md](docs/FFI_PYTHON.md).
 
 ### Antivirus note
 
-Unsigned Rust CLIs get heuristic hits sometimes (Defender “generic”). Builds are plain GitHub Actions artifacts, no UPX. If something quarantines the exe: build with `cargo build -p dns-cli --release`, or allowlist after checking the release checksums. Code signing needs a paid cert — not in place yet.
+Unsigned Rust CLIs get heuristic hits sometimes (Defender “generic”). Builds are plain GitHub Actions artifacts, no UPX. If something quarantines the exe: build with `cargo build -p dns-cli --release`, or allowlist after checking the release checksums.
 
 ---
 
@@ -47,18 +61,19 @@ cd dnstt-kit
 ```
 
 Web UI: http://127.0.0.1:8787  
-Docker notes: [docs/DOCKER.md](docs/DOCKER.md)
+Docker: [docs/DOCKER.md](docs/DOCKER.md)
 
-Default profile name in samples is `demo` (domains under `*.example.com` — replace with yours in `config/profiles.json`).
+Default sample profile is `demo` (`*.example.com` — edit `config/profiles.json`).
 
 ---
 
 ## What’s in the box
 
-- Scan with presets `low` / `normal` / `fast` (`low` targets ~512 MB / 1 core)
+- Scan with presets `low` / `normal` / `fast` (`low` ≈ 512 MB / 1 core)
 - Generate NetMod, DNSTT, SlipNet URI
 - Slipnet offline-first (`vendor/slipnet/…`; fetch is opt-in)
 - Web UI with local Tailwind Play CDN (`dns-cli/static/tailwindcss.js`)
+- `scanner_core` shared lib for embedding (desktop + Android `.so`)
 - Backup / archive / clean + SQLite run history
 - CI for Windows / Linux / macOS (+ aarch64)
 
@@ -79,13 +94,13 @@ Details: [SECURITY.md](SECURITY.md), [docs/SECURITY_WEB.md](docs/SECURITY_WEB.md
 
 | File | Topic |
 |------|--------|
+| [CONTRIBUTING.md](CONTRIBUTING.md) | How to PR |
 | [docs/TUTORIAL.md](docs/TUTORIAL.md) | Windows walkthrough |
 | [docs/CLI.md](docs/CLI.md) | Commands |
 | [docs/WEB.md](docs/WEB.md) | Web panel |
+| [docs/FFI_PYTHON.md](docs/FFI_PYTHON.md) | DLL / SO / Android FFI |
 | [docs/ENV.md](docs/ENV.md) | `.env` |
 | [docs/DOCKER.md](docs/DOCKER.md) | Docker |
-| [docs/MEMORY.md](docs/MEMORY.md) | Low-RAM preset |
-| [docs/SLIPNET.md](docs/SLIPNET.md) | Slipnet |
 | [LICENSE](LICENSE) | Non-commercial |
 
 ---

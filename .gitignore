@@ -31,13 +31,13 @@ config/profiles.json
 *.pem
 *.key
 
-# --- vendor ---
+# --- vendor binaries (keep README) ---
 vendor/slipnet/**/slipnet.exe
 vendor/slipnet/**/slipnet
 vendor/slipnet/**/VERSION
 !vendor/slipnet/README.md
 
-# --- internal notes (not published to GitHub) ---
+# --- internal notes (not published) ---
 docs/_internal/
 docs/STATUS.md
 docs/COMPETITORS.md
@@ -62,14 +62,16 @@ __pycache__/
 .venv/
 venv/
 
-# --- local scratch ---
+# --- local scratch / tools ---
 /tools/
+node_modules/
+
+# --- accidental shared-lib drops in repo root ---
+/scanner_core.dll
+/libscanner_core.so
+/libscanner_core.dylib
+/dnstt-kit-*.exe
+/dnstt-kit-scanner_core-*
 
 # --- local agent helpers (never publish) ---
-scripts/_commit_clean.py
-scripts/_strip_coauthor.py
-scripts/_strip-coauthor.*
-scripts/_publish_clean.py
-scripts/_recreate_repo.py
-scripts/_fresh_repo.py
-
+scripts/_*

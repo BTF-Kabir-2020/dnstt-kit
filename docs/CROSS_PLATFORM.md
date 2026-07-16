@@ -2,13 +2,15 @@
 
 CI and Releases build per OS/arch. One binary does not cover everything.
 
-| Target | Release asset | Notes |
-|--------|---------------|--------|
-| Windows x64 | `dnstt-kit-windows-x64.exe` | |
-| Linux x64 | `dnstt-kit-linux-x64` | |
-| Linux ARM64 | `dnstt-kit-linux-arm64` | cross in CI |
-| macOS Apple Silicon | `dnstt-kit-macos-arm64` | `macos-latest` |
-| Linux musl x64 | `dnstt-kit-linux-x64-musl` | CI only, best-effort |
+| Target | CLI asset | Shared lib |
+|--------|-----------|------------|
+| Windows x64 | `dnstt-kit-windows-x64.exe` | `…-scanner_core-windows-x64.dll` |
+| Linux x64 | `dnstt-kit-linux-x64` | `…-scanner_core-linux-x64.so` |
+| Linux ARM64 | `dnstt-kit-linux-arm64` | `…-scanner_core-linux-arm64.so` |
+| macOS Apple Silicon | `dnstt-kit-macos-arm64` | `…-scanner_core-macos-arm64.dylib` |
+| Android arm64-v8a | — | `…-scanner_core-android-arm64-v8a.so` |
+| Android armeabi-v7a | — | `…-scanner_core-android-armeabi-v7a.so` |
+| Linux musl x64 | `dnstt-kit-linux-x64-musl` (CI only) | — |
 
 ## Slipnet
 

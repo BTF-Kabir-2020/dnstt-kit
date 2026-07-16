@@ -1,8 +1,8 @@
 # =============================================================================
-# dnstt-kit Release — tag v* → multi-OS binaries (dns-cli only)
+# dnstt-kit Release — tag v* → dns-cli + scanner_core shared libs
 # =============================================================================
-# Does NOT ship slipnet. slipnet stays optional under vendor/slipnet/<triple>/
-# (offline-first; user may `dns-cli slipnet fetch` locally if they want).
+# Ships: CLI binaries + DLL/SO/dylib (+ Android .so via NDK).
+# Does NOT ship slipnet (offline-first under vendor/slipnet/<triple>/).
 # =============================================================================
 name: Release
 
@@ -32,29 +32,39 @@ jobs:
           - os: windows-latest
             artifact: dns-cli.exe
             asset: dnstt-kit-windows-x64.exe
+            lib_src: scanner_core.dll
+            lib_asset: dnstt-kit-scanner_core-windows-x64.dll
           - os: ubuntu-latest
             artifact: dns-cli
             asset: dnstt-kit-linux-x64
+            lib_src: libscanner_core.so
+            lib_asset: dnstt-kit-scanner_core-linux-x64.so
           - os: macos-latest
             artifact: dns-cli
             asset: dnstt-kit-macos-arm64
+            lib_src: libscanner_core.dylib
+            lib_asset: dnstt-kit-scanner_core-macos-arm64.dylib
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v5
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
-      - name: Build release
-        run: cargo build -p dns-cli --release
-      - name: Stage asset
+      - name: Build release (CLI + lib)
+        run: |
+          cargo build -p dns-cli --release
+          cargo build -p scanner_core --release
+      - name: Stage assets
         shell: bash
         run: |
           set -euo pipefail
           mkdir -p dist
           SRC="target/release/${{ matrix.artifact }}"
+          LIB="target/release/${{ matrix.lib_src }}"
           test -f "$SRC"
+          test -f "$LIB"
           cp "$SRC" "dist/${{ matrix.asset }}"
+          cp "$LIB" "dist/${{ matrix.lib_asset }}"
           cp LICENSE README.md dist/
-          # sanity: binary runs without slipnet
           "dist/${{ matrix.asset }}" info || true
           ls -la dist/
       - name: Upload artifact
@@ -63,6 +73,7 @@ jobs:
           name: ${{ matrix.asset }}
           path: |
             dist/${{ matrix.asset }}
+            dist/${{ matrix.lib_asset }}
             dist/LICENSE
             dist/README.md
 
@@ -76,25 +87,70 @@ jobs:
       - uses: Swatinem/rust-cache@v2
       - name: Install linker
         run: sudo apt-get update && sudo apt-get install -y gcc-aarch64-linux-gnu
-      - name: Cross build
+      - name: Cross build CLI + lib
         env:
           CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER: aarch64-linux-gnu-gcc
-        run: cargo build -p dns-cli --release --target aarch64-unknown-linux-gnu
+        run: |
+          cargo build -p dns-cli --release --target aarch64-unknown-linux-gnu
+          cargo build -p scanner_core --release --target aarch64-unknown-linux-gnu
       - name: Stage
         run: |
           mkdir -p dist
           cp target/aarch64-unknown-linux-gnu/release/dns-cli dist/dnstt-kit-linux-arm64
+          cp target/aarch64-unknown-linux-gnu/release/libscanner_core.so \
+            dist/dnstt-kit-scanner_core-linux-arm64.so
           cp LICENSE README.md dist/
       - uses: actions/upload-artifact@v5
         with:
           name: dnstt-kit-linux-arm64
           path: |
             dist/dnstt-kit-linux-arm64
+            dist/dnstt-kit-scanner_core-linux-arm64.so
+            dist/LICENSE
+            dist/README.md
+
+  # Android JNI-ready .so (arm64-v8a + armeabi-v7a) via NDK
+  release-android:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-linux-android,armv7-linux-androideabi
+      - uses: Swatinem/rust-cache@v2
+      - uses: nttld/setup-ndk@v1
+        id: setup-ndk
+        with:
+          ndk-version: r27c
+          link-to-sdk: false
+      - uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-ndk
+      - name: Build Android shared libs
+        env:
+          ANDROID_NDK_HOME: ${{ steps.setup-ndk.outputs.ndk-path }}
+        run: |
+          set -euo pipefail
+          cargo ndk -t arm64-v8a -t armeabi-v7a -o /tmp/android-libs \
+            build -p scanner_core --release
+          mkdir -p dist
+          cp /tmp/android-libs/arm64-v8a/libscanner_core.so \
+            dist/dnstt-kit-scanner_core-android-arm64-v8a.so
+          cp /tmp/android-libs/armeabi-v7a/libscanner_core.so \
+            dist/dnstt-kit-scanner_core-android-armeabi-v7a.so
+          cp LICENSE README.md dist/
+          ls -la dist/
+      - uses: actions/upload-artifact@v5
+        with:
+          name: dnstt-kit-android-libs
+          path: |
+            dist/dnstt-kit-scanner_core-android-arm64-v8a.so
+            dist/dnstt-kit-scanner_core-android-armeabi-v7a.so
             dist/LICENSE
             dist/README.md
 
   publish:
-    needs: [release, release-linux-aarch64]
+    needs: [release, release-linux-aarch64, release-android]
     runs-on: ubuntu-latest
     if: startsWith(github.ref, 'refs/tags/v')
     steps:
@@ -106,10 +162,9 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p dist
-          find artifacts -type f -name 'dnstt-kit-*' -exec cp -f {} dist/ \;
+          find artifacts -type f \( -name 'dnstt-kit-*' \) -exec cp -f {} dist/ \;
           cp LICENSE README.md dist/
           cd dist
-          # only binaries in checksums (not LICENSE/README)
           sha256sum dnstt-kit-* | tee SHA256SUMS.txt
           ls -la
       - name: GitHub Release
@@ -121,31 +176,45 @@ jobs:
           body: |
             ## dnstt-kit ${{ github.ref_name }}
 
-            Official **dns-cli** builds (GitHub Actions). Author: **BTF Kabir** (`@BTF-Kabir-2020`).
+            Official builds (GitHub Actions). Author: **BTF Kabir** (`@BTF-Kabir-2020`).
+            **PRs welcome** — see `CONTRIBUTING.md`.
 
-            ### Download
+            ### CLI
             | File | Platform |
             |------|----------|
             | `dnstt-kit-windows-x64.exe` | Windows 64-bit |
             | `dnstt-kit-linux-x64` | Linux x86_64 |
             | `dnstt-kit-linux-arm64` | Linux ARM64 |
             | `dnstt-kit-macos-arm64` | macOS Apple Silicon |
-            | `LICENSE` · `README.md` · `SHA256SUMS.txt` | docs + checksums |
+
+            ### Shared library (`scanner_core` FFI — Python / JNI / Android)
+            | File | Use |
+            |------|-----|
+            | `dnstt-kit-scanner_core-windows-x64.dll` | Windows ctypes / C |
+            | `dnstt-kit-scanner_core-linux-x64.so` | Linux |
+            | `dnstt-kit-scanner_core-linux-arm64.so` | Linux ARM64 / Termux-friendly |
+            | `dnstt-kit-scanner_core-macos-arm64.dylib` | macOS |
+            | `dnstt-kit-scanner_core-android-arm64-v8a.so` | Android arm64-v8a (JNI) |
+            | `dnstt-kit-scanner_core-android-armeabi-v7a.so` | Android armeabi-v7a (JNI) |
+
+            C ABI: `scanner_run_from_file` / `scanner_free_string` — see `docs/FFI_PYTHON.md`.
+
+            Also: `LICENSE` · `README.md` · `SHA256SUMS.txt`
 
             ### slipnet (optional, separate)
-            These releases **do not include** slipnet. Kit is offline-first:
+            Not included. Offline-first:
             - put binary under `vendor/slipnet/<windows-x86_64|linux-x86_64|linux-aarch64>/`
-            - or run `dns-cli slipnet fetch` yourself when you want a download
-            - pipelines work with `--skip-slipnet` (default-friendly for beginners)
+            - or run `dns-cli slipnet fetch` locally
+            - pipelines work with `--skip-slipnet`
 
             ### First run (Windows)
-            1. Extract **Source code** zip (needs `testdata/` + `config/`)
+            1. Extract **Source code** zip (`testdata/` + `config/`)
             2. Put `dnstt-kit-windows-x64.exe` in that folder
             3. Run with **no args** → menu
             4. Or: `dnstt-kit-windows-x64.exe serve` → http://127.0.0.1:8787
 
             ### Antivirus
-            Unsigned binaries may be flagged by heuristic AV (false positive). Prefer build from source or verify `SHA256SUMS.txt`.
+            Unsigned binaries may be flagged by heuristic AV. Prefer build from source or verify `SHA256SUMS.txt`.
 
             Non-commercial — see `LICENSE`.
           files: dist/*
