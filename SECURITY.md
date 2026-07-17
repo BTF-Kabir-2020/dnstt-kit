@@ -15,7 +15,7 @@
 - Path traversal / arbitrary file access through the API
 - Command injection outside the intentional job allow-list
 - Secrets leaking in API/UI/logs (`.env`, slipnet config, passwords)
-- Reproducible OOM / crashes on ~512 MB hosts
+- Reproducible OOM / crashes on ~512 MB hosts when using `--preset low` / `--stream` (unexpected for large lists)
 - Supply-chain issues in vendored scripts
 
 ## Usually not vulnerabilities

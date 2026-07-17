@@ -23,9 +23,9 @@ This crate mostly uses `Result<(), String>` (`AppResult`) at CLI edges. Prefer `
 
 Source files and HTTP are UTF-8. On Windows the binary sets console CP 65001 at startup.
 
-## Low memory
+## Low memory / large lists
 
-Use `--preset low` — see [docs/MEMORY.md](docs/MEMORY.md).
+Use `--preset low` or `--stream` (line-by-line + disk). See [docs/MEMORY.md](docs/MEMORY.md).
 
 ## Layout
 

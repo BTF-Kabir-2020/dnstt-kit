@@ -69,7 +69,7 @@ Default sample profile is `demo` (`*.example.com` — edit `config/profiles.json
 
 ## What’s in the box
 
-- Scan with presets `low` / `normal` / `fast` — **`low` streams to disk** (line-by-line input, bounded workers; OK for multi‑million lists on ~512 MB / 1 core). See [docs/MEMORY.md](docs/MEMORY.md)
+- Scan with presets `low` / `normal` / `fast` — **`low` streams to disk** (line-by-line; RAM ≈ O(workers)). Huge lists stay memory-safe on small VPS; wall-clock is still network-bound. See [docs/MEMORY.md](docs/MEMORY.md)
 - Generate NetMod, DNSTT, SlipNet URI
 - Slipnet offline-first (`vendor/slipnet/…`; fetch is opt-in)
 - Web UI with local Tailwind Play CDN (`dns-cli/static/tailwindcss.js`)
