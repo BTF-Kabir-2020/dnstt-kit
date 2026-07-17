@@ -1,6 +1,6 @@
 [package]
 name = "scanner_core"
-version = "0.1.1"
+version = "0.1.2"
 edition = "2021"
 description = "DNS resolver scanner core — library and FFI for Android/Java/Kotlin"
 

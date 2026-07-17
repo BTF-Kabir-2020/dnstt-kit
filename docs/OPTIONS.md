@@ -1,6 +1,6 @@
 # گزینه‌ها و قابلیت‌های اضافه‌شده (changelog عملیاتی)
 
-> به‌روز: 2026-07-15
+> به‌روز: 2026-07-17
 
 ## دستورات جدید
 
@@ -16,7 +16,7 @@
 
 | محل | فلگ |
 |-----|------|
-| scan | `--limit` `--ok-only` `--enable-tcp` `--quiet` `--no-legacy-out` |
+| scan | `--limit` (خط‌به‌خط) `--stream` `--ok-only` `--enable-tcp` `--quiet` `--no-legacy-out` |
 | resolvers sync | `--limit` |
 | generate * | `--limit` `--no-dmvpn` `--ns` `--pubkey` `--remark` |
 | pipeline | `--limit` `-j` `--dry-run` `--no-dmvpn` `--generate-kinds` `--quiet` |
@@ -41,7 +41,10 @@
 
 - unit: Kryo / NetMod / SlipNet URI / verify / resolvers sort
 - CLI: doctor, profiles, verify, resolvers sort/take, pipeline dry-run, generate `--limit`
+- stream scale: `scanner_core` `max_targets` + فایل بزرگ خط‌به‌خط؛ CLI `--preset low`
 - real DNS: `tests/real_dns.rs` + smoke دستی گزینه‌ها
+
+لیست‌های میلیون‌تایی / رم کم: [MEMORY.md](MEMORY.md)
 
 ```powershell
 cargo test -p dns-cli

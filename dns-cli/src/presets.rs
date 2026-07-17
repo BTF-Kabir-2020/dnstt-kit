@@ -1,4 +1,4 @@
-//! presetهای منابع: `low` برای تک‌هسته / ~512MB، `normal` برای ماشین معمولی.
+//! presetهای منابع: `low` برای تک‌هسته / ~512MB (استریم واقعی)، `normal` برای ماشین معمولی.
 
 use serde::{Deserialize, Serialize};
 
@@ -27,15 +27,16 @@ pub struct ScanPreset {
     pub no_ping: bool,
     pub udp_attempts: u32,
     pub udp_backoff_ms: u64,
-    /// اگر true از run_scan_stream استفاده شود (کم‌رم)
+    /// اگر true از run_scan_stream + نوشتن افزایشی دیسک استفاده شود (کم‌رم / لیست بزرگ)
     pub stream: bool,
 }
 
 impl ScanPreset {
     pub fn named(name: PresetName) -> Self {
         match name {
+            // چند worker هم‌زمان با سقف in-flight؛ RAM ≈ O(workers) نه O(خطوط فایل)
             PresetName::Low => Self {
-                workers: 1,
+                workers: 16,
                 timeout: 5.0,
                 no_ping: true,
                 udp_attempts: 2,

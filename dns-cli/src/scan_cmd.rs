@@ -4,7 +4,9 @@ use crate::output;
 use crate::presets::{PresetName, ScanPreset};
 use clap::Args;
 use scanner_core::{run_scan, run_scan_stream, ScanConfig, ScanOutput, ScanResult};
-use std::fs;
+use std::collections::HashSet;
+use std::fs::{self, OpenOptions};
+use std::io::Write;
 use std::path::{Path, PathBuf};
 use tokio::sync::mpsc;
 
@@ -52,7 +54,7 @@ pub struct ScanArgs {
     #[arg(long)]
     pub no_legacy_out: bool,
 
-    /// فقط N خط اول فایل ورودی
+    /// فقط N هدف معتبر اول (خط‌به‌خط؛ کل فایل در RAM بار نمی‌شود)
     #[arg(long)]
     pub limit: Option<usize>,
 
@@ -92,7 +94,7 @@ async fn run_async(work_dir: &Path, args: ScanArgs) -> AppResult {
         .map(ScanPreset::named)
         .unwrap_or_else(|| ScanPreset::named(PresetName::Normal));
 
-    let mut input = if args.input.is_absolute() {
+    let input = if args.input.is_absolute() {
         args.input.clone()
     } else {
         work_dir.join(&args.input)
@@ -111,23 +113,10 @@ async fn run_async(work_dir: &Path, args: ScanArgs) -> AppResult {
         d
     };
 
-    // --limit: فایل موقت با N خط اول داخل همان run
     if let Some(n) = args.limit {
-        let text = fs::read_to_string(&input).map_err(|e| e.to_string())?;
-        let lines: Vec<_> = text
-            .lines()
-            .filter(|l| {
-                let t = l.trim();
-                !t.is_empty() && !t.starts_with('#')
-            })
-            .take(n)
-            .collect();
-        let tmp = run_dir.join("_input_limit.txt");
-        fs::write(&tmp, lines.join("\n") + "\n").map_err(|e| e.to_string())?;
         if !args.quiet {
-            println!("ℹ️  --limit {n} → {} خط", lines.len());
+            println!("ℹ️  --limit {n} (line-by-line, no full-file load)");
         }
-        input = tmp;
     }
 
     let mut config = ScanConfig {
@@ -146,6 +135,7 @@ async fn run_async(work_dir: &Path, args: ScanArgs) -> AppResult {
         ping_timeout: None,
         udp_attempts: args.udp_attempts.max(1),
         udp_backoff_ms: args.udp_backoff_ms,
+        max_targets: args.limit,
     };
 
     // اگر domain پروفایل داده نشده، extra پیش‌فرض نگه دار
@@ -166,26 +156,14 @@ async fn run_async(work_dir: &Path, args: ScanArgs) -> AppResult {
     }
 
     let out = if use_stream {
-        let (tx, mut rx) = mpsc::channel::<ScanResult>(256);
-        let scan_fut = run_scan_stream(config.clone(), tx);
-        let mut collected = Vec::new();
-        let collector = async {
-            while let Some(r) = rx.recv().await {
-                collected.push(r);
-            }
-            collected
-        };
-        let (scan_res, collected) = tokio::join!(scan_fut, collector);
-        let (ok, fail, elapsed) = scan_res?;
-        if !args.quiet {
-            println!("زمان: {elapsed:.2}s | OK/working≈{ok} | FAIL≈{fail} (stream)");
-        }
-        aggregate_from_results(collected, elapsed, config.include_dns_only, ok, fail)
+        run_stream_to_disk(&run_dir, config, args.quiet).await?
     } else {
         run_scan(config).await?
     };
 
-    write_scan_outputs(&run_dir, &out)?;
+    if !use_stream {
+        write_scan_outputs(&run_dir, &out)?;
+    }
     let legacy = args.legacy_out && !args.no_legacy_out;
     if legacy {
         write_legacy_out(work_dir, &out)?;
@@ -193,9 +171,9 @@ async fn run_async(work_dir: &Path, args: ScanArgs) -> AppResult {
 
     if !args.quiet {
         println!(
-            "✅ scan done: total={} working={} ok_dnsonly_ips={}",
+            "✅ scan done: total={} ok/working≈{} ok_dnsonly_ips={}",
             out.total_count,
-            out.working.len(),
+            out.ok_count,
             out.ok_and_dnsonly_ips.len()
         );
         println!("   run: {}", run_dir.display());
@@ -223,90 +201,155 @@ fn preset_extra() -> Vec<String> {
     vec!["cloudflare.com".into(), "example.com".into()]
 }
 
-fn aggregate_from_results(
-    all_results: Vec<ScanResult>,
-    elapsed: f64,
-    include_dns_only: bool,
-    ok_count: usize,
-    fail_count: usize,
-) -> ScanOutput {
-    use std::collections::HashSet;
-    let working: Vec<_> = all_results
-        .iter()
-        .filter(|r| r.status == "OK" || (include_dns_only && r.status == "DNS_ONLY"))
-        .cloned()
-        .collect();
-    let mut working_sorted = working.clone();
-    working_sorted.sort_by(|a, b| {
-        let la = if a.latency_dns_ms >= 0.0 {
-            a.latency_dns_ms
-        } else {
-            1e9
-        };
-        let lb = if b.latency_dns_ms >= 0.0 {
-            b.latency_dns_ms
-        } else {
-            1e9
-        };
-        la.partial_cmp(&lb).unwrap()
-    });
-    let working_filtered: Vec<_> = working_sorted
-        .into_iter()
-        .filter(|r| r.latency_dns_ms >= 50.0)
-        .collect();
-    let working_ok_all: Vec<_> = working
-        .iter()
-        .filter(|r| r.status == "OK")
-        .cloned()
-        .collect();
-    let dns_only_all: Vec<_> = working
-        .iter()
-        .filter(|r| r.status == "DNS_ONLY")
-        .cloned()
-        .collect();
-    let mut hosts_unique: Vec<String> = working_ok_all
-        .iter()
-        .map(|r| r.host.clone())
-        .collect::<HashSet<_>>()
-        .into_iter()
-        .collect();
+/// استریم واقعی: نتایج را هم‌زمان روی دیسک می‌نویسد؛ فقط IPهای working در RAM می‌مانند.
+async fn run_stream_to_disk(
+    run_dir: &Path,
+    config: ScanConfig,
+    quiet: bool,
+) -> Result<ScanOutput, String> {
+    let include_dns_only = config.include_dns_only;
+    let workers = config.workers.clamp(1, 512);
+    let chan = workers.saturating_mul(2).clamp(32, 256);
+    let (tx, mut rx) = mpsc::channel::<ScanResult>(chan);
+
+    let all_path = run_dir.join("dns_all_results.txt");
+    let mut all_file = OpenOptions::new()
+        .create(true)
+        .write(true)
+        .truncate(true)
+        .open(&all_path)
+        .map_err(|e| e.to_string())?;
+    all_file
+        .write_all(
+            b"original\thost\tport\tstatus\tlatency_dns_ms\tlatency_txt_ms\tlatency_ping_ms\trecursive\ttxt_ok\terror\n",
+        )
+        .map_err(|e| e.to_string())?;
+
+    let scan_fut = run_scan_stream(config, tx);
+    let writer = async {
+        let mut working_ok: HashSet<String> = HashSet::new();
+        let mut dns_only: HashSet<String> = HashSet::new();
+        let mut working_ip_ports: HashSet<String> = HashSet::new();
+        let mut dns_only_ip_ports: HashSet<String> = HashSet::new();
+        let mut done = 0usize;
+        let mut buf = Vec::with_capacity(512);
+
+        while let Some(r) = rx.recv().await {
+            buf.clear();
+            write_line_bytes(&r, &mut buf);
+            all_file.write_all(&buf).map_err(|e| e.to_string())?;
+
+            if r.status == "OK" {
+                working_ok.insert(r.host.clone());
+                working_ip_ports.insert(format!("{}:{}", r.host, r.port));
+            } else if include_dns_only && r.status == "DNS_ONLY" {
+                dns_only.insert(r.host.clone());
+                dns_only_ip_ports.insert(format!("{}:{}", r.host, r.port));
+            }
+
+            done += 1;
+            if !quiet && done % 1000 == 0 {
+                println!("… scanned {done}");
+            }
+        }
+        all_file.flush().map_err(|e| e.to_string())?;
+
+        Ok::<_, String>((working_ok, dns_only, working_ip_ports, dns_only_ip_ports))
+    };
+
+    let (scan_res, writer_res) = tokio::join!(scan_fut, writer);
+    let (ok, fail, elapsed) = scan_res?;
+    let (working_ok, dns_only, working_ip_ports, dns_only_ip_ports) = writer_res?;
+
+    if !quiet {
+        println!("زمان: {elapsed:.2}s | OK/working≈{ok} | FAIL≈{fail} (stream→disk)");
+    }
+
+    let mut hosts_unique: Vec<String> = working_ok.into_iter().collect();
     hosts_unique.sort();
-    let mut working_ip_ports: Vec<String> = working_ok_all
-        .iter()
-        .map(|r| format!("{}:{}", r.host, r.port))
-        .collect();
+    let mut working_ip_ports: Vec<String> = working_ip_ports.into_iter().collect();
     working_ip_ports.sort();
-    working_ip_ports.dedup();
-    let mut dns_only_ips: Vec<String> = dns_only_all.iter().map(|r| r.host.clone()).collect();
+    let mut dns_only_ips: Vec<String> = dns_only.into_iter().collect();
     dns_only_ips.sort();
-    dns_only_ips.dedup();
-    let dns_only_ip_ports: Vec<String> = dns_only_all
+    let mut dns_only_ip_ports: Vec<String> = dns_only_ip_ports.into_iter().collect();
+    dns_only_ip_ports.sort();
+
+    let mut combined: Vec<String> = hosts_unique
         .iter()
-        .map(|r| format!("{}:{}", r.host, r.port))
-        .collect();
-    let mut combined: Vec<String> = working
-        .iter()
-        .map(|r| r.host.clone())
+        .chain(dns_only_ips.iter())
+        .cloned()
         .collect::<HashSet<_>>()
         .into_iter()
         .collect();
     combined.sort();
 
-    ScanOutput {
+    let out = ScanOutput {
         elapsed_secs: elapsed,
-        total_count: ok_count + fail_count,
-        ok_count,
-        fail_count,
-        all_results,
-        working,
-        working_sorted_filtered: working_filtered,
+        total_count: ok + fail,
+        ok_count: ok,
+        fail_count: fail,
+        // در حالت استریم، نتایج کامل فقط روی دیسک است (نه در RAM)
+        all_results: Vec::new(),
+        working: Vec::new(),
+        working_sorted_filtered: Vec::new(),
         working_ips: hosts_unique,
         working_ip_ports,
-        dns_only: dns_only_all,
+        dns_only: Vec::new(),
         dns_only_ips,
         dns_only_ip_ports,
         ok_and_dnsonly_ips: combined,
-    }
+    };
+
+    write_stream_summaries(run_dir, &out)?;
+    Ok(out)
+}
+
+fn write_stream_summaries(dir: &Path, out: &ScanOutput) -> AppResult {
+    fs::write(
+        dir.join("dns_ok_and_dnsonly_ips.txt"),
+        out.ok_and_dnsonly_ips.join("\n") + "\n",
+    )
+    .map_err(|e| e.to_string())?;
+    fs::write(
+        dir.join("dns_ok_and_dnsonly_ips.json"),
+        serde_json::to_string_pretty(&out.ok_and_dnsonly_ips).map_err(|e| e.to_string())? + "\n",
+    )
+    .map_err(|e| e.to_string())?;
+    fs::write(
+        dir.join("summary.json"),
+        serde_json::to_string_pretty(&serde_json::json!({
+            "elapsed_secs": out.elapsed_secs,
+            "total_count": out.total_count,
+            "ok_count": out.ok_count,
+            "fail_count": out.fail_count,
+            "working_ips": out.working_ips.len(),
+            "ok_and_dnsonly_ips": out.ok_and_dnsonly_ips.len(),
+            "stream": true,
+            "all_results_file": "dns_all_results.txt",
+        }))
+        .map_err(|e| e.to_string())?
+            + "\n",
+    )
+    .map_err(|e| e.to_string())?;
+    Ok(())
+}
+
+fn write_line_bytes(r: &ScanResult, buf: &mut Vec<u8>) {
+    use std::io::Write as _;
+    let _ = writeln!(
+        buf,
+        "{}\t{}\t{}\t{}\t{:.2}\t{:.2}\t{:.2}\t{}\t{}\t{}",
+        r.original,
+        r.host,
+        r.port,
+        r.status,
+        r.latency_dns_ms,
+        r.latency_txt_ms,
+        r.latency_ping_ms,
+        r.recursive,
+        r.txt_ok,
+        r.error
+    );
 }
 
 fn write_line(r: &ScanResult) -> String {

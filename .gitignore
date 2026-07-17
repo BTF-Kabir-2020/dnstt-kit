@@ -39,12 +39,14 @@ vendor/slipnet/**/VERSION
 
 # --- internal notes (not published) ---
 docs/_internal/
+docs/_wiki-seed/
 docs/STATUS.md
 docs/COMPETITORS.md
 docs/EDITING.md
 docs/CI_QUALITY.md
 docs/GITHUB_DEPLOY.md
 docs/ARCHITECTURE.md
+docs/WIKI_BUILD.md
 
 # --- IDE / OS ---
 .idea/

@@ -306,7 +306,7 @@ dependencies = [
 
 [[package]]
 name = "dns-cli"
-version = "0.1.1"
+version = "0.1.2"
 dependencies = [
  "base64",
  "chrono",
@@ -980,7 +980,7 @@ checksum = "cf54715a573b99ac80df0bc206da022bcd442c974952c7b9720069370852e21f"
 
 [[package]]
 name = "scanner_core"
-version = "0.1.1"
+version = "0.1.2"
 dependencies = [
  "chrono",
  "rand",

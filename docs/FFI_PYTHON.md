@@ -45,6 +45,8 @@ cargo ndk -t arm64-v8a -t armeabi-v7a -o dist/android build -p scanner_core --re
 - `scanner_run_from_file(path) -> *char` (JSON; caller frees)
 - `scanner_free_string(ptr)`
 
+> **Large lists:** FFI `scanner_run_from_file` uses `run_scan` and returns **one JSON blob of all results** — fine for small samples, not for multi‑million IP files. For huge lists use the CLI with `--preset low` / `--stream` (line-by-line + disk). See [MEMORY.md](MEMORY.md).
+
 ## Python
 
 ```powershell

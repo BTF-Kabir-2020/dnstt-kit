@@ -1,4 +1,4 @@
-# dnstt-kit (Rust) — v0.1.1
+# dnstt-kit (Rust) — v0.1.2
 
 [![CI](https://github.com/BTF-Kabir-2020/dnstt-kit/actions/workflows/ci.yml/badge.svg)](https://github.com/BTF-Kabir-2020/dnstt-kit/actions/workflows/ci.yml)
 [![License](https://img.shields.io/badge/license-Non--Commercial-blue)](LICENSE)
@@ -69,7 +69,7 @@ Default sample profile is `demo` (`*.example.com` — edit `config/profiles.json
 
 ## What’s in the box
 
-- Scan with presets `low` / `normal` / `fast` (`low` ≈ 512 MB / 1 core)
+- Scan with presets `low` / `normal` / `fast` — **`low` streams to disk** (line-by-line input, bounded workers; OK for multi‑million lists on ~512 MB / 1 core). See [docs/MEMORY.md](docs/MEMORY.md)
 - Generate NetMod, DNSTT, SlipNet URI
 - Slipnet offline-first (`vendor/slipnet/…`; fetch is opt-in)
 - Web UI with local Tailwind Play CDN (`dns-cli/static/tailwindcss.js`)
@@ -101,6 +101,7 @@ Details: [SECURITY.md](SECURITY.md), [docs/SECURITY_WEB.md](docs/SECURITY_WEB.md
 | [docs/FFI_PYTHON.md](docs/FFI_PYTHON.md) | DLL / SO / Android FFI |
 | [docs/ENV.md](docs/ENV.md) | `.env` |
 | [docs/DOCKER.md](docs/DOCKER.md) | Docker |
+| [docs/MEMORY.md](docs/MEMORY.md) | Low RAM / large scan lists |
 | [LICENSE](LICENSE) | Non-commercial |
 
 ---

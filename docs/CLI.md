@@ -23,9 +23,11 @@ dns-cli info
 
 ## scan / resolvers / generate / pipeline
 
-Flags: [OPTIONS.md](OPTIONS.md)
+Flags: [OPTIONS.md](OPTIONS.md) · Large lists / low RAM: [MEMORY.md](MEMORY.md)
 
 ```text
+dns-cli scan huge.txt --preset low --quiet
+dns-cli scan huge.txt --preset low --limit 50000 --quiet
 dns-cli resolvers exclude --input resolvers.json --exclude bad.txt
 dns-cli pipeline run ... --auto-archive --auto-backup
 ```

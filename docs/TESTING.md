@@ -19,6 +19,7 @@ cargo test --workspace
 | unit | Kryo / NetMod / SlipNet / verify / resolvers |
 | CLI | generate، doctor، backup، env، completion، … |
 | real DNS | اسکن عمومی + pipeline |
+| stream / scale | `max_targets`، فایل ~20k خط خط‌به‌خط، CLI `--preset low` روی لیست بزرگ |
 | release | `cargo build --release` + artifact Actions |
 
 جزئیات کیفیت: `.\scripts\quality.ps1` (rustfmt + clippy + test)

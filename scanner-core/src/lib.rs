@@ -1,8 +1,8 @@
 //! هستهٔ اسکنر DNS برای پیدا کردن رزولور مناسب DNSTT.
 //!
 //! دو API اصلی:
-//! - [`run_scan`]: همهٔ نتایج را در حافظه جمع می‌کند (مناسب FFI / گزارش کامل)
-//! - [`run_scan_stream`]: هر نتیجه را از کانال می‌فرستد (مناسب RAM کم / 512MB)
+//! - [`run_scan`]: نتایج را در حافظه جمع می‌کند (مناسب FFI / گزارش کامل روی لیست کوچک)
+//! - [`run_scan_stream`]: ورودی خط‌به‌خط + ارسال نتیجه روی کانال (مناسب لیست بزرگ / RAM کم)
 //!
 //! بدون وابستگی به CLI؛ قابل استفاده از Rust و از طریق FFI در Java/Kotlin (اندروید).
 
@@ -14,9 +14,9 @@ use regex::Regex;
 use serde::Serialize;
 use std::collections::HashSet;
 use std::fs::{File, OpenOptions};
-use std::io::Write;
+use std::io::{BufRead, BufReader, Write};
 use std::net::SocketAddr;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::Arc;
 use std::sync::{Mutex as StdMutex, OnceLock};
@@ -24,6 +24,7 @@ use std::time::{Duration, Instant};
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::{TcpStream, UdpSocket};
 use tokio::sync::mpsc;
+use tokio::task::JoinSet;
 use tokio::time::timeout;
 
 const TCP_PORTS: &[u16] = &[853];
@@ -32,9 +33,13 @@ static LOG_FILE: OnceLock<StdMutex<Option<File>>> = OnceLock::new();
 static LOG_COUNTER: AtomicUsize = AtomicUsize::new(0);
 static QUIET: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
 
-/// اگر true باشد، لاگ DEBUG روی stdout چاپ نمی‌شود (فایل لاگ اگر باز باشد همچنان می‌نویسد).
+/// اگر true باشد، لاگ DEBUG نه روی stdout و نه در فایل نوشته می‌شود (مناسب اسکن بزرگ / RAM کم).
 pub fn set_quiet(quiet: bool) {
     QUIET.store(quiet, Ordering::Relaxed);
+}
+
+fn is_quiet() -> bool {
+    QUIET.load(Ordering::Relaxed)
 }
 
 pub fn init_logger(base_name: &str) {
@@ -63,9 +68,10 @@ pub fn init_logger(base_name: &str) {
 }
 
 fn log_line(msg: &str) {
-    if !QUIET.load(Ordering::Relaxed) {
-        println!("{}", msg);
+    if is_quiet() {
+        return;
     }
+    println!("{}", msg);
     let mutex = LOG_FILE.get_or_init(|| StdMutex::new(None));
     if let Ok(mut guard) = mutex.lock() {
         if let Some(f) = guard.as_mut() {
@@ -78,8 +84,10 @@ fn log_line(msg: &str) {
 
 macro_rules! log_println {
     ($($arg:tt)*) => {{
-        let s = format!($($arg)*);
-        log_line(&s);
+        if !$crate::is_quiet() {
+            let s = format!($($arg)*);
+            $crate::log_line(&s);
+        }
     }};
 }
 
@@ -554,12 +562,27 @@ pub fn parse_target(line: &str) -> Option<Target> {
     })
 }
 
-pub fn load_targets(path: &PathBuf) -> std::io::Result<Vec<Target>> {
-    let content = std::fs::read_to_string(path)?;
+/// خواندن همهٔ هدف‌ها به `Vec` (فقط برای لیست‌های کوچک / تست).
+pub fn load_targets(path: &Path) -> std::io::Result<Vec<Target>> {
+    load_targets_limited(path, None)
+}
+
+/// مثل [`load_targets`] ولی بعد از `max` هدف معتبر متوقف می‌شود (`None` = بدون سقف).
+pub fn load_targets_limited(path: &Path, max: Option<usize>) -> std::io::Result<Vec<Target>> {
+    let file = File::open(path)?;
+    let mut reader = BufReader::new(file);
     let mut targets = Vec::new();
-    for line in content.lines() {
-        if let Some(t) = parse_target(line) {
+    let mut line = String::new();
+    loop {
+        line.clear();
+        if reader.read_line(&mut line)? == 0 {
+            break;
+        }
+        if let Some(t) = parse_target(&line) {
             targets.push(t);
+            if max.is_some_and(|m| targets.len() >= m) {
+                break;
+            }
         }
     }
     Ok(targets)
@@ -583,6 +606,8 @@ pub struct ScanConfig {
     pub udp_attempts: u32,
     /// مبنای backoff نمایی بین تلاش‌های UDP (ms); سقف تأخیر بین تلاش‌ها ۵s.
     pub udp_backoff_ms: u64,
+    /// سقف تعداد هدف معتبر از فایل (`None` = همه). خط‌به‌خط خوانده می‌شود؛ کل فایل در RAM نیست.
+    pub max_targets: Option<usize>,
 }
 
 impl Default for ScanConfig {
@@ -600,8 +625,198 @@ impl Default for ScanConfig {
             ping_timeout: None,
             udp_attempts: 2,
             udp_backoff_ms: 150,
+            max_targets: None,
         }
     }
+}
+
+#[derive(Clone)]
+struct ScanTaskParams {
+    timeout_secs: f64,
+    domain: String,
+    extra_domains: Vec<String>,
+    a_domain: String,
+    do_ping: bool,
+    ping_timeout: f64,
+    include_dns_only: bool,
+    udp_attempts: u32,
+    udp_backoff_ms: u64,
+}
+
+fn scan_task_params(config: &ScanConfig) -> ScanTaskParams {
+    let domain = config.domain.clone();
+    let a_domain = config
+        .a_probe_domain
+        .clone()
+        .unwrap_or_else(|| domain.clone());
+    ScanTaskParams {
+        timeout_secs: config.timeout,
+        domain,
+        extra_domains: config.extra_domains.clone(),
+        a_domain,
+        do_ping: !config.no_ping,
+        ping_timeout: config.ping_timeout.unwrap_or(config.timeout),
+        include_dns_only: config.include_dns_only,
+        udp_attempts: config.udp_attempts.clamp(1, 32),
+        udp_backoff_ms: config.udp_backoff_ms.min(10_000),
+    }
+}
+
+async fn scan_one_target(
+    t: Target,
+    p: Arc<ScanTaskParams>,
+    ok_count: Arc<AtomicUsize>,
+    fail_count: Arc<AtomicUsize>,
+) -> ScanResult {
+    log_println!(
+        "[SCAN-START] {} (host={}, port={})",
+        t.original,
+        t.host,
+        t.port
+    );
+
+    let (dns_ok, latency_dns_ms, error_dns) = check_dns_resolver(
+        &t.host,
+        t.port,
+        p.timeout_secs,
+        &p.a_domain,
+        p.udp_attempts,
+        p.udp_backoff_ms,
+    )
+    .await;
+
+    let mut latency_ping_ms = -1.0;
+    if dns_ok && p.do_ping {
+        let host = t.host.clone();
+        let ping_timeout = p.ping_timeout;
+        latency_ping_ms = tokio::task::spawn_blocking(move || ping_host(&host, ping_timeout))
+            .await
+            .unwrap_or(-1.0);
+    }
+
+    let mut latency_txt_ms = -1.0;
+    let mut recursive_ok = false;
+    let mut txt_ok = false;
+    let mut error = error_dns.clone();
+
+    if dns_ok {
+        let mut last_err = error_dns.clone();
+        for d in std::iter::once(&p.domain).chain(p.extra_domains.iter()) {
+            let (txt_res, txt_latency, txt_err) = check_recursive_txt(
+                &t.host,
+                t.port,
+                p.timeout_secs,
+                d,
+                p.udp_attempts,
+                p.udp_backoff_ms,
+            )
+            .await;
+            latency_txt_ms = txt_latency;
+            if txt_res {
+                txt_ok = true;
+                recursive_ok = true;
+                error = String::new();
+                break;
+            } else {
+                last_err = txt_err;
+            }
+        }
+        if !txt_ok {
+            error = last_err;
+        }
+    }
+
+    let status = if dns_ok && txt_ok {
+        "OK".to_string()
+    } else if dns_ok {
+        "DNS_ONLY".to_string()
+    } else {
+        "FAIL".to_string()
+    };
+
+    let is_working = dns_ok && (txt_ok || p.include_dns_only);
+    if is_working {
+        ok_count.fetch_add(1, Ordering::Relaxed);
+    } else {
+        fail_count.fetch_add(1, Ordering::Relaxed);
+    }
+
+    let scan_result = ScanResult {
+        original: t.original,
+        host: t.host,
+        port: t.port,
+        status,
+        latency_dns_ms,
+        latency_txt_ms,
+        latency_ping_ms,
+        recursive: recursive_ok,
+        txt_ok,
+        error,
+    };
+
+    log_println!(
+        "[SCAN-END] {} (status={}, dns_ms={:.2}, txt_ms={:.2}, ping_ms={:.2})",
+        scan_result.original,
+        scan_result.status,
+        scan_result.latency_dns_ms,
+        scan_result.latency_txt_ms,
+        scan_result.latency_ping_ms
+    );
+
+    scan_result
+}
+
+/// خواندن خط‌به‌خط فایل هدف و spawn با سقف in-flight = `workers` (بدون `Vec` از همهٔ handleها).
+async fn spawn_targets_bounded<F, Fut>(
+    config: &ScanConfig,
+    workers: usize,
+    mut spawn_one: F,
+) -> Result<usize, String>
+where
+    F: FnMut(Target) -> Fut,
+    Fut: std::future::Future<Output = ()> + Send + 'static,
+{
+    let file = File::open(&config.input_file).map_err(|e| format!("read input error: {}", e))?;
+    let mut reader = BufReader::new(file);
+    let mut line = String::new();
+    let mut scheduled = 0usize;
+    let mut join_set: JoinSet<()> = JoinSet::new();
+    let enable_tcp = config.enable_tcp;
+    let max_targets = config.max_targets;
+
+    loop {
+        if max_targets.is_some_and(|m| scheduled >= m) {
+            break;
+        }
+        line.clear();
+        let n = reader
+            .read_line(&mut line)
+            .map_err(|e| format!("read input error: {}", e))?;
+        if n == 0 {
+            break;
+        }
+        let Some(t) = parse_target(&line) else {
+            continue;
+        };
+        if is_tcp_port(t.port) && !enable_tcp {
+            continue;
+        }
+
+        while join_set.len() >= workers {
+            let _ = join_set.join_next().await;
+        }
+
+        let fut = spawn_one(t);
+        join_set.spawn(fut);
+        scheduled += 1;
+    }
+
+    while join_set.join_next().await.is_some() {}
+
+    if scheduled == 0 {
+        return Err("هیچ هدف معتبری در فایل پیدا نشد.".to_string());
+    }
+    Ok(scheduled)
 }
 
 #[derive(Clone, Debug, Serialize)]
@@ -668,163 +883,13 @@ pub struct ScanOutput {
     pub ok_and_dnsonly_ips: Vec<String>,
 }
 
-/// اجرای اسکن بر اساس تنظیمات؛ بدون نوشتن فایل. خروجی را برمی‌گرداند.
-pub async fn run_scan(config: ScanConfig) -> Result<ScanOutput, String> {
-    init_logger("scanner_debug");
-
-    let ping_timeout = config.ping_timeout.unwrap_or(config.timeout);
-    let do_ping = !config.no_ping;
-
-    let targets =
-        load_targets(&config.input_file).map_err(|e| format!("read input error: {}", e))?;
-
-    if targets.is_empty() {
-        return Err("هیچ هدف معتبری در فایل پیدا نشد.".to_string());
-    }
-
-    let workers = config.workers.clamp(1, 512);
-    let semaphore = Arc::new(tokio::sync::Semaphore::new(workers));
-    let ok_count = Arc::new(AtomicUsize::new(0));
-    let fail_count = Arc::new(AtomicUsize::new(0));
-
-    let timeout_secs = config.timeout;
-    let domain = config.domain.clone();
-    let extra_domains = config.extra_domains.clone();
-    let a_domain = config
-        .a_probe_domain
-        .clone()
-        .unwrap_or_else(|| domain.clone());
-    let enable_tcp = config.enable_tcp;
-    let include_dns_only = config.include_dns_only;
-    let udp_attempts = config.udp_attempts.clamp(1, 32);
-    let udp_backoff_ms = config.udp_backoff_ms.min(10_000);
-
-    let t0 = Instant::now();
-    let mut handles = Vec::new();
-
-    for t in targets {
-        if is_tcp_port(t.port) && !enable_tcp {
-            continue;
-        }
-        let permit = semaphore.clone().acquire_owned().await.unwrap();
-        let ok_count = ok_count.clone();
-        let fail_count = fail_count.clone();
-        let domain = domain.clone();
-        let extra_domains = extra_domains.clone();
-        let a_domain = a_domain.clone();
-
-        let h = tokio::spawn(async move {
-            let _permit = permit;
-
-            log_println!(
-                "[SCAN-START] {} (host={}, port={})",
-                t.original,
-                t.host,
-                t.port
-            );
-
-            let (dns_ok, latency_dns_ms, error_dns) = check_dns_resolver(
-                &t.host,
-                t.port,
-                timeout_secs,
-                &a_domain,
-                udp_attempts,
-                udp_backoff_ms,
-            )
-            .await;
-
-            let mut latency_ping_ms = -1.0;
-            if dns_ok && do_ping {
-                let host = t.host.clone();
-                latency_ping_ms =
-                    tokio::task::spawn_blocking(move || ping_host(&host, ping_timeout))
-                        .await
-                        .unwrap_or(-1.0);
-            }
-
-            let mut latency_txt_ms = -1.0;
-            let mut recursive_ok = false;
-            let mut txt_ok = false;
-            let mut error = error_dns.clone();
-
-            if dns_ok {
-                let mut last_err = error_dns.clone();
-                for d in std::iter::once(&domain).chain(extra_domains.iter()) {
-                    let (txt_res, txt_latency, txt_err) = check_recursive_txt(
-                        &t.host,
-                        t.port,
-                        timeout_secs,
-                        d,
-                        udp_attempts,
-                        udp_backoff_ms,
-                    )
-                    .await;
-                    latency_txt_ms = txt_latency;
-                    if txt_res {
-                        txt_ok = true;
-                        recursive_ok = true;
-                        error = String::new();
-                        break;
-                    } else {
-                        last_err = txt_err;
-                    }
-                }
-                if !txt_ok {
-                    error = last_err;
-                }
-            }
-
-            let status = if dns_ok && txt_ok {
-                "OK".to_string()
-            } else if dns_ok {
-                "DNS_ONLY".to_string()
-            } else {
-                "FAIL".to_string()
-            };
-
-            let is_working = dns_ok && (txt_ok || include_dns_only);
-            if is_working {
-                ok_count.fetch_add(1, Ordering::Relaxed);
-            } else {
-                fail_count.fetch_add(1, Ordering::Relaxed);
-            }
-
-            let scan_result = ScanResult {
-                original: t.original.clone(),
-                host: t.host.clone(),
-                port: t.port,
-                status: status.clone(),
-                latency_dns_ms,
-                latency_txt_ms,
-                latency_ping_ms,
-                recursive: recursive_ok,
-                txt_ok,
-                error: error.clone(),
-            };
-
-            log_println!(
-                "[SCAN-END] {} (status={}, dns_ms={:.2}, txt_ms={:.2}, ping_ms={:.2})",
-                scan_result.original,
-                scan_result.status,
-                scan_result.latency_dns_ms,
-                scan_result.latency_txt_ms,
-                scan_result.latency_ping_ms
-            );
-
-            scan_result
-        });
-        handles.push(h);
-    }
-
-    let mut all_results = Vec::new();
-    for h in handles {
-        if let Ok(r) = h.await {
-            all_results.push(r);
-        }
-    }
-
-    let elapsed = t0.elapsed().as_secs_f64();
-
+fn aggregate_scan_results(
+    all_results: Vec<ScanResult>,
+    elapsed: f64,
+    include_dns_only: bool,
+    ok_count: usize,
+    fail_count: usize,
+) -> ScanOutput {
     let working: Vec<_> = all_results
         .iter()
         .filter(|r| r.status == "OK" || (include_dns_only && r.status == "DNS_ONLY"))
@@ -894,13 +959,11 @@ pub async fn run_scan(config: ScanConfig) -> Result<ScanOutput, String> {
         .collect();
     combined_ips.sort();
 
-    let total = ok_count.load(Ordering::Relaxed) + fail_count.load(Ordering::Relaxed);
-
-    Ok(ScanOutput {
+    ScanOutput {
         elapsed_secs: elapsed,
-        total_count: total,
-        ok_count: ok_count.load(Ordering::Relaxed),
-        fail_count: fail_count.load(Ordering::Relaxed),
+        total_count: ok_count + fail_count,
+        ok_count,
+        fail_count,
         all_results,
         working,
         working_sorted_filtered: working_filtered,
@@ -910,153 +973,97 @@ pub async fn run_scan(config: ScanConfig) -> Result<ScanOutput, String> {
         dns_only_ips,
         dns_only_ip_ports,
         ok_and_dnsonly_ips: combined_ips,
-    })
+    }
 }
 
-/// اسکن استریم‌شده: هر [`ScanResult`] را روی کانال می‌فرستد تا مصرف RAM ثابت بماند.
+/// اجرای اسکن بر اساس تنظیمات؛ بدون نوشتن فایل. خروجی را برمی‌گرداند.
+///
+/// ورودی خط‌به‌خط خوانده می‌شود؛ ولی **همهٔ نتایج در RAM جمع می‌شوند** —
+/// برای لیست‌های میلیون‌تایی از [`run_scan_stream`] + نوشتن افزایشی روی دیسک استفاده کنید.
+pub async fn run_scan(config: ScanConfig) -> Result<ScanOutput, String> {
+    if !is_quiet() {
+        init_logger("scanner_debug");
+    }
+
+    let workers = config.workers.clamp(1, 512);
+    let ok_count = Arc::new(AtomicUsize::new(0));
+    let fail_count = Arc::new(AtomicUsize::new(0));
+    let params = Arc::new(scan_task_params(&config));
+    let include_dns_only = config.include_dns_only;
+
+    let t0 = Instant::now();
+    let (tx, mut rx) = mpsc::channel::<ScanResult>(workers.saturating_mul(2).max(32));
+    let collector = tokio::spawn(async move {
+        let mut all = Vec::new();
+        while let Some(r) = rx.recv().await {
+            all.push(r);
+        }
+        all
+    });
+
+    let tx_spawn = tx.clone();
+    let ok_spawn = ok_count.clone();
+    let fail_spawn = fail_count.clone();
+    let params_spawn = params.clone();
+    spawn_targets_bounded(&config, workers, move |t| {
+        let tx = tx_spawn.clone();
+        let ok_count = ok_spawn.clone();
+        let fail_count = fail_spawn.clone();
+        let params = params_spawn.clone();
+        async move {
+            let result = scan_one_target(t, params, ok_count, fail_count).await;
+            let _ = tx.send(result).await;
+        }
+    })
+    .await?;
+    drop(tx);
+
+    let all_results = collector.await.map_err(|e| e.to_string())?;
+    let elapsed = t0.elapsed().as_secs_f64();
+    Ok(aggregate_scan_results(
+        all_results,
+        elapsed,
+        include_dns_only,
+        ok_count.load(Ordering::Relaxed),
+        fail_count.load(Ordering::Relaxed),
+    ))
+}
+
+/// اسکن استریم‌شده: ورودی خط‌به‌خط؛ هر [`ScanResult`] روی کانال؛ سقف in-flight = workers.
 ///
 /// بازگشت: `(ok_count, fail_count, elapsed_secs)`.
-/// بعد از اتمام حلقهٔ spawn، `tx` داخل این تابع drop می‌شود تا گیرنده EOF ببیند.
+/// بعد از اتمام، `tx` drop می‌شود تا گیرنده EOF ببیند.
+/// مصرف RAM تقریباً O(workers) است نه O(تعداد خطوط فایل) — به شرطی که گیرنده نتایج را در RAM جمع نکند.
 pub async fn run_scan_stream(
     config: ScanConfig,
     tx: mpsc::Sender<ScanResult>,
 ) -> Result<(usize, usize, f64), String> {
-    init_logger("scanner_debug");
-
-    let ping_timeout = config.ping_timeout.unwrap_or(config.timeout);
-    let do_ping = !config.no_ping;
-
-    let targets =
-        load_targets(&config.input_file).map_err(|e| format!("read input error: {}", e))?;
-
-    if targets.is_empty() {
-        return Err("هیچ هدف معتبری در فایل پیدا نشد.".to_string());
+    if !is_quiet() {
+        init_logger("scanner_debug");
     }
 
     let workers = config.workers.clamp(1, 512);
-    let semaphore = Arc::new(tokio::sync::Semaphore::new(workers));
     let ok_count = Arc::new(AtomicUsize::new(0));
     let fail_count = Arc::new(AtomicUsize::new(0));
-
-    let timeout_secs = config.timeout;
-    let domain = config.domain.clone();
-    let extra_domains = config.extra_domains.clone();
-    let a_domain = config
-        .a_probe_domain
-        .clone()
-        .unwrap_or_else(|| domain.clone());
-    let enable_tcp = config.enable_tcp;
-    let include_dns_only = config.include_dns_only;
-    let udp_attempts = config.udp_attempts.clamp(1, 32);
-    let udp_backoff_ms = config.udp_backoff_ms.min(10_000);
+    let params = Arc::new(scan_task_params(&config));
 
     let t0 = Instant::now();
-    let mut handles = Vec::new();
-
-    for t in targets {
-        if is_tcp_port(t.port) && !enable_tcp {
-            continue;
-        }
-
-        let permit = semaphore.clone().acquire_owned().await.unwrap();
-        let tx = tx.clone();
-        let ok_count = ok_count.clone();
-        let fail_count = fail_count.clone();
-        let domain = domain.clone();
-        let extra_domains = extra_domains.clone();
-        let a_domain = a_domain.clone();
-
-        let h = tokio::spawn(async move {
-            let _permit = permit;
-
-            let (dns_ok, latency_dns_ms, error_dns) = check_dns_resolver(
-                &t.host,
-                t.port,
-                timeout_secs,
-                &a_domain,
-                udp_attempts,
-                udp_backoff_ms,
-            )
-            .await;
-
-            let mut latency_ping_ms = -1.0;
-            if dns_ok && do_ping {
-                let host = t.host.clone();
-                latency_ping_ms =
-                    tokio::task::spawn_blocking(move || ping_host(&host, ping_timeout))
-                        .await
-                        .unwrap_or(-1.0);
-            }
-
-            let mut latency_txt_ms = -1.0;
-            let mut recursive_ok = false;
-            let mut txt_ok = false;
-            let mut error = error_dns.clone();
-
-            if dns_ok {
-                let mut last_err = error_dns.clone();
-                for d in std::iter::once(&domain).chain(extra_domains.iter()) {
-                    let (txt_res, txt_latency, txt_err) = check_recursive_txt(
-                        &t.host,
-                        t.port,
-                        timeout_secs,
-                        d,
-                        udp_attempts,
-                        udp_backoff_ms,
-                    )
-                    .await;
-                    latency_txt_ms = txt_latency;
-                    if txt_res {
-                        txt_ok = true;
-                        recursive_ok = true;
-                        error = String::new();
-                        break;
-                    } else {
-                        last_err = txt_err;
-                    }
-                }
-                if !txt_ok {
-                    error = last_err;
-                }
-            }
-
-            let status = if dns_ok && txt_ok {
-                "OK".to_string()
-            } else if dns_ok {
-                "DNS_ONLY".to_string()
-            } else {
-                "FAIL".to_string()
-            };
-
-            let is_working = dns_ok && (txt_ok || include_dns_only);
-            if is_working {
-                ok_count.fetch_add(1, Ordering::Relaxed);
-            } else {
-                fail_count.fetch_add(1, Ordering::Relaxed);
-            }
-
-            let result = ScanResult {
-                original: t.original,
-                host: t.host,
-                port: t.port,
-                status,
-                latency_dns_ms,
-                latency_txt_ms,
-                latency_ping_ms,
-                recursive: recursive_ok,
-                txt_ok,
-                error,
-            };
+    let tx_spawn = tx.clone();
+    let ok_spawn = ok_count.clone();
+    let fail_spawn = fail_count.clone();
+    let params_spawn = params.clone();
+    spawn_targets_bounded(&config, workers, move |t| {
+        let tx = tx_spawn.clone();
+        let ok_count = ok_spawn.clone();
+        let fail_count = fail_spawn.clone();
+        let params = params_spawn.clone();
+        async move {
+            let result = scan_one_target(t, params, ok_count, fail_count).await;
             let _ = tx.send(result).await;
-        });
-        handles.push(h);
-    }
-
+        }
+    })
+    .await?;
     drop(tx);
-
-    for h in handles {
-        let _ = h.await;
-    }
 
     let elapsed = t0.elapsed().as_secs_f64();
     Ok((
@@ -1136,6 +1143,22 @@ mod tests {
     }
 
     #[test]
+    fn test_load_targets_limited_stops_early() {
+        let dir = std::env::temp_dir();
+        let path = dir.join("scanner_core_test_targets_limit.txt");
+        let mut content = String::new();
+        for i in 0..100 {
+            content.push_str(&format!("10.0.0.{i}\n"));
+        }
+        std::fs::write(&path, content).unwrap();
+        let targets = load_targets_limited(&path, Some(5)).unwrap();
+        std::fs::remove_file(&path).ok();
+        assert_eq!(targets.len(), 5);
+        assert_eq!(targets[0].host, "10.0.0.0");
+        assert_eq!(targets[4].host, "10.0.0.4");
+    }
+
+    #[test]
     fn test_format_dns_readable_nxdomain_like_log() {
         // QNAME = b.example.com (NXDOMAIN sample)
         let pkt: Vec<u8> = vec![
@@ -1169,6 +1192,7 @@ mod tests {
         assert_eq!(c.workers, 64);
         assert!(!c.enable_tcp);
         assert!(c.include_dns_only);
+        assert!(c.max_targets.is_none());
     }
 
     #[tokio::test]
@@ -1186,5 +1210,81 @@ mod tests {
         assert!(result.is_err());
         let err = result.unwrap_err();
         assert!(err.contains("هیچ هدف معتبری"));
+    }
+
+    #[tokio::test]
+    async fn test_run_scan_stream_respects_max_targets() {
+        set_quiet(true);
+        let dir = std::env::temp_dir();
+        let path = dir.join("scanner_core_test_stream_max.txt");
+        let mut content = String::new();
+        // TEST-NET-1 — should fail fast / timeout, no real internet needed for count check
+        for i in 0..50 {
+            content.push_str(&format!("192.0.2.{i}\n"));
+        }
+        std::fs::write(&path, &content).unwrap();
+
+        let config = ScanConfig {
+            input_file: path.clone(),
+            timeout: 0.05,
+            no_ping: true,
+            workers: 4,
+            udp_attempts: 1,
+            max_targets: Some(7),
+            ..ScanConfig::default()
+        };
+        let (tx, mut rx) = mpsc::channel::<ScanResult>(32);
+        let scan_fut = run_scan_stream(config, tx);
+        let collect_fut = async {
+            let mut n = 0usize;
+            while rx.recv().await.is_some() {
+                n += 1;
+            }
+            n
+        };
+        let (scan_res, n) = tokio::join!(scan_fut, collect_fut);
+        std::fs::remove_file(&path).ok();
+        set_quiet(false);
+        let (ok, fail, _) = scan_res.expect("stream scan");
+        assert_eq!(ok + fail, 7, "ok={ok} fail={fail}");
+        assert_eq!(n, 7);
+    }
+
+    #[tokio::test]
+    async fn test_run_scan_stream_large_file_line_by_line() {
+        set_quiet(true);
+        let dir = std::env::temp_dir();
+        let path = dir.join("scanner_core_test_stream_large.txt");
+        // ~20k lines — must not load whole file into Vec<Target> before scan
+        let mut content = String::with_capacity(20_000 * 16);
+        for i in 0..20_000 {
+            content.push_str(&format!("198.51.100.{}\n", i % 250));
+        }
+        std::fs::write(&path, &content).unwrap();
+
+        let config = ScanConfig {
+            input_file: path.clone(),
+            timeout: 0.02,
+            no_ping: true,
+            workers: 8,
+            udp_attempts: 1,
+            max_targets: Some(200),
+            ..ScanConfig::default()
+        };
+        let (tx, mut rx) = mpsc::channel::<ScanResult>(64);
+        let scan_fut = run_scan_stream(config, tx);
+        let collect_fut = async {
+            let mut n = 0usize;
+            while rx.recv().await.is_some() {
+                n += 1;
+            }
+            n
+        };
+        let (scan_res, n) = tokio::join!(scan_fut, collect_fut);
+        std::fs::remove_file(&path).ok();
+        set_quiet(false);
+        let (ok, fail, _) = scan_res.expect("large stream");
+        assert_eq!(ok + fail, 200);
+        assert_eq!(n, 200);
     }
 }
