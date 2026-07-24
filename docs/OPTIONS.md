@@ -1,14 +1,14 @@
 # گزینه‌ها و قابلیت‌های اضافه‌شده (changelog عملیاتی)
 
-> به‌روز: 2026-07-17
+> به‌روز: 2026-07-24
 
 ## دستورات جدید
 
 | دستور | کار |
 |--------|-----|
 | `doctor` | سلامت محیط (پروفایل / slipnet / sqlite / testdata) |
-| `decode <uri>` | decode لینک `dns://` / `slipnet://` (+ `--save-profile`) |
-| `verify <file>` | decode و اعتبارسنجی لینک‌های تولیدشده |
+| `decode <uri>` | decode لینک `dns://` / `slipnet://` / `sn://dnstt?` (+ `--save-profile` برای dns/slipnet) |
+| `verify <file\|uri>` | اعتبارسنجی فایل لینک‌ها **یا** یک URI اینلاین (`dns://` / `slipnet://` / `sn://dnstt?`) — در ویندوز URI را کوت کنید |
 | `profiles list\|show` | لیست / نمایش امن پروفایل |
 | `archive restore` | برگرداندن ZIP آرشیو به `runs/` |
 | `resolvers sort\|take\|shuffle\|merge` | مدیریت لیست IP |
@@ -40,10 +40,11 @@
 
 ## تست‌های مرتبط
 
-- unit: Kryo / NetMod / SlipNet URI / verify / resolvers sort
-- CLI: doctor, profiles, verify, resolvers sort/take, pipeline dry-run, generate `--limit`
+- unit: Kryo / NetMod / SlipNet URI / verify / decode edge (scheme/b64) / resolvers sort
+- CLI: doctor, profiles, verify file **and** inline URI, resolvers sort/take, pipeline dry-run, generate `--limit`
 - stream scale: `scanner_core` `max_targets` + فایل بزرگ خط‌به‌خط؛ CLI `--preset low`
 - real DNS: `tests/real_dns.rs` + smoke دستی گزینه‌ها
+- UDP scan: peer `connect` + TXID/QR match (کاهش پاسخ تزریقی از منبع اشتباه)
 
 لیست‌های میلیون‌تایی / رم کم: [MEMORY.md](MEMORY.md)
 
@@ -52,5 +53,6 @@ cargo test -p dns-cli
 .\target\debug\dns-cli.exe doctor
 .\target\debug\dns-cli.exe scan testdata\dns_sample.txt --preset low --limit 3 --quiet
 .\target\debug\dns-cli.exe generate all --resolvers testdata\resolvers_sample.json --limit 2 --no-dmvpn --out-dir runs\tmp_gen
-.\target\debug\dns-cli.exe verify runs\tmp_gen\netmod\...
+.\target\debug\dns-cli.exe verify runs\tmp_gen\netmod\....txt
+.\target\debug\dns-cli.exe verify "dns://...."
 ```

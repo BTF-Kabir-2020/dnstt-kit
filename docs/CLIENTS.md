@@ -15,6 +15,7 @@ This kit **scans resolvers** and **builds import links**. It is not a VPN app an
 ```text
 dns-cli decode "dns://...."
 dns-cli decode "dns://...." --save-profile mytunnel
+dns-cli verify "dns://...."
 ```
 
 Password is masked unless `--show-secrets`. Profiles land in `config/profiles.json` (gitignored).

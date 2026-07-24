@@ -30,6 +30,8 @@ dns-cli scan huge.txt --preset low --quiet
 dns-cli scan huge.txt --preset low --limit 50000 --quiet
 dns-cli decode "dns://...."
 dns-cli decode "dns://...." --save-profile mytunnel
+dns-cli verify runs\...\netmod_....txt
+dns-cli verify "dns://...."
 dns-cli resolvers export-txt --input resolvers.json --out client_resolvers.txt
 dns-cli resolvers exclude --input resolvers.json --exclude bad.txt
 dns-cli pipeline run ... --auto-archive --auto-backup

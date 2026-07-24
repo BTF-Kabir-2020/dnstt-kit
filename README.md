@@ -90,6 +90,7 @@ Your NetMod link is base64 JSON (`ps`, `addr`, `ns`, `pubkey`, optional `user`/`
 ```powershell
 .\dns-cli.cmd decode "dns://...."
 .\dns-cli.cmd decode "dns://...." --save-profile mytunnel
+.\dns-cli.cmd verify "dns://...."   # or a .txt of generated links
 ```
 
 Then:
