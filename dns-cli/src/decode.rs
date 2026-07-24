@@ -372,7 +372,7 @@ mod tests {
 
     #[test]
     fn decode_roundtrip_netmod() {
-        let link = netmod::netmod_link(&sample(), "1.1.1.1");
+        let link = netmod::netmod_link(&sample(), "1.1.1.1", "BTF-test-AAAA-01");
         let d = decode_uri(&link).unwrap();
         assert_eq!(d.tunnel_domain, "demo.example.com");
         assert_eq!(d.resolver, "1.1.1.1:53");

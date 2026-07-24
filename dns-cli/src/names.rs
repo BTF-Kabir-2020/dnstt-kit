@@ -2,11 +2,16 @@
 //! Prefer these constants; probe via `to_ascii_lowercase()` instead of hardcoding
 //! alternate-case string literals in tests.
 
+use rand::Rng;
+
 /// Remark / display token (ASCII uppercase).
 pub const BTF_NAME: &str = "BTF";
 
 /// Export-folder label (ASCII uppercase).
 pub const DMVPN_LABEL: &str = "DMVPN";
+
+/// Alphabet for batch tags (no 0/O/1/l/I — readable in phone lists).
+const BATCH_ALPHABET: &[u8] = b"23456789ABCDEFGHJKLMNPQRSTUVWXYZ";
 
 fn needle_lower(canon: &str) -> String {
     canon.to_ascii_lowercase()
@@ -61,6 +66,29 @@ pub fn ensure_person_name(s: &str) -> String {
 /// Apply both person-name and DMVPN label uppercase fixes (no forced prefixes for DMVPN).
 pub fn normalize_display_text(s: &str) -> String {
     uppercase_dmvpn_label(&uppercase_person_name(s))
+}
+
+/// Short random tag shared by one generate run (e.g. `K7HM`) so same-day batches don't collide.
+pub fn new_batch_tag() -> String {
+    let mut rng = rand::thread_rng();
+    (0..4)
+        .map(|_| {
+            let i = rng.gen_range(0..BATCH_ALPHABET.len());
+            BATCH_ALPHABET[i] as char
+        })
+        .collect()
+}
+
+/// Display name for one link in a batch: `{base}-{tag}-01`
+pub fn batch_item_label(base: &str, batch: &str, index_1based: usize) -> String {
+    let base = ensure_person_name(base);
+    format!("{base}-{batch}-{index_1based:02}")
+}
+
+/// Display name for the combined “all resolvers” link: `{base}-{tag}-all`
+pub fn batch_all_label(base: &str, batch: &str) -> String {
+    let base = ensure_person_name(base);
+    format!("{base}-{batch}-all")
 }
 
 #[cfg(test)]
@@ -120,5 +148,21 @@ mod tests {
             normalize_display_text(&s),
             format!("{BTF_NAME} / {DMVPN_LABEL}")
         );
+    }
+
+    #[test]
+    fn batch_labels_include_tag_and_index() {
+        let tag = "K7HM";
+        assert_eq!(batch_item_label("BTFJang891", tag, 1), "BTFJang891-K7HM-01");
+        assert_eq!(
+            batch_item_label("BTFJang891", tag, 50),
+            "BTFJang891-K7HM-50"
+        );
+        assert_eq!(batch_all_label("BTFJang891", tag), "BTFJang891-K7HM-all");
+        let a = new_batch_tag();
+        let b = new_batch_tag();
+        assert_eq!(a.len(), 4);
+        assert!(a.chars().all(|c| BATCH_ALPHABET.contains(&(c as u8))));
+        assert_ne!(a, b);
     }
 }

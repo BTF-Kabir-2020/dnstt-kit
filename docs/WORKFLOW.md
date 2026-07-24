@@ -53,8 +53,10 @@ runs/pipeline_<id>/configs/
   dmvpn/     sn://dnstt?…   → DMVPN
   slipnet/   slipnet://     → SlipNet
 
-Also (by default): DMVPN/<timestamp>_<remark>/  → same sn:// links as a dated import bundle
+Also (by default): DMVPN/<timestamp>_<batch>_<remark>/  → same sn:// links as a dated import bundle
 ```
+
+Display names share one **batch tag** per generate (e.g. `Remark-K7HM-01`) — see [CLIENTS.md](CLIENTS.md).
 
 If e2e ran and found survivors, generate uses **only** `e2e_passed` IPs.
 

@@ -76,28 +76,42 @@ pub fn slipnet_resolver_token(r: &str) -> String {
     }
 }
 
-pub fn generate(profile: &Profile, resolvers: &[String], out_dir: &Path) -> Result<usize, String> {
+pub fn generate(
+    profile: &Profile,
+    resolvers: &[String],
+    out_dir: &Path,
+    batch: &str,
+) -> Result<usize, String> {
+    use crate::names::{batch_all_label, batch_item_label};
+
     fs::create_dir_all(out_dir).map_err(|e| e.to_string())?;
+    let base_name = if profile.remark.trim().is_empty() {
+        profile.profile_name.as_str()
+    } else {
+        profile.remark.as_str()
+    };
     let all_tokens: Vec<_> = resolvers
         .iter()
         .map(|r| slipnet_resolver_token(r))
         .collect();
     let all_field = all_tokens.join(",");
-    let all_uri = build_uri(profile, &all_field, &profile.remark);
+    let all_uri = build_uri(profile, &all_field, &batch_all_label(base_name, batch));
     fs::write(out_dir.join("slipnet_all.txt"), format!("{all_uri}\n"))
         .map_err(|e| e.to_string())?;
 
     let mut per = Vec::new();
     let mut map = serde_json::Map::new();
-    for r in resolvers {
+    for (i, r) in resolvers.iter().enumerate() {
         let tok = slipnet_resolver_token(r);
-        let uri = build_uri(profile, &tok, &format!("{} ({r})", profile.remark));
+        let name = batch_item_label(base_name, batch, i + 1);
+        let uri = build_uri(profile, &tok, &name);
         per.push(uri.clone());
-        map.insert(r.clone(), json!({"resolver": r, "link": uri}));
+        map.insert(r.clone(), json!({"resolver": r, "name": name, "link": uri}));
     }
     fs::write(out_dir.join("slipnet_per.txt"), per.join("\n") + "\n").map_err(|e| e.to_string())?;
     let info = json!({
         "format": "slipnet:// + base64(pipe fields)",
+        "batch": batch,
         "tunnel_domain": profile.tunnel_domain,
         "total": resolvers.len(),
         "all": all_uri,

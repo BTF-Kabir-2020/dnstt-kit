@@ -233,6 +233,7 @@ impl GenCliOpts {
             ns: self.ns.clone(),
             pubkey: self.pubkey.clone(),
             remark: self.remark.clone(),
+            batch: None,
         }
     }
 }

@@ -1,4 +1,4 @@
-# dnstt-kit (Rust) — v0.1.3
+# dnstt-kit (Rust) — v0.1.4
 
 [![CI](https://github.com/BTF-Kabir-2020/dnstt-kit/actions/workflows/ci.yml/badge.svg)](https://github.com/BTF-Kabir-2020/dnstt-kit/actions/workflows/ci.yml)
 [![License](https://img.shields.io/badge/license-Non--Commercial-blue)](LICENSE)
@@ -161,7 +161,7 @@ Details: [SECURITY.md](SECURITY.md), [docs/SECURITY_WEB.md](docs/SECURITY_WEB.md
 | [docs/CLI.md](docs/CLI.md) | Commands |
 | [docs/WORKFLOW.md](docs/WORKFLOW.md) | scan → e2e → configs |
 | [docs/SCAN.md](docs/SCAN.md) | UDP success rule (scanner2-aligned) |
-| [docs/CLIENTS.md](docs/CLIENTS.md) | NetMod / DMVPN / SlipNet / … |
+| [docs/CLIENTS.md](docs/CLIENTS.md) | NetMod / DMVPN / SlipNet (+ batch labels) |
 | [docs/WEB.md](docs/WEB.md) | Web panel |
 | [docs/FFI_PYTHON.md](docs/FFI_PYTHON.md) | DLL / SO / Android FFI |
 | [docs/ENV.md](docs/ENV.md) | `.env` |

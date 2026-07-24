@@ -7,6 +7,7 @@ pub mod slipnet_uri;
 
 use crate::config;
 use crate::db;
+use crate::names;
 use crate::output;
 use crate::resolvers;
 use std::path::{Path, PathBuf};
@@ -21,6 +22,8 @@ pub struct GenOpts {
     pub ns: Option<String>,
     pub pubkey: Option<String>,
     pub remark: Option<String>,
+    /// Shared batch tag for one generate run; if `None`, a new tag is minted.
+    pub batch: Option<String>,
 }
 
 fn work(base: &Path, rel: PathBuf) -> PathBuf {
@@ -39,11 +42,18 @@ fn apply_overrides(mut profile: config::Profile, opts: &GenOpts) -> config::Prof
         profile.pubkey = pk.clone();
     }
     if let Some(r) = &opts.remark {
-        let r = crate::names::ensure_person_name(r);
+        let r = names::ensure_person_name(r);
         profile.remark = r.clone();
         profile.profile_name = r;
     }
     profile
+}
+
+fn resolve_batch(opts: &GenOpts) -> String {
+    opts.batch
+        .clone()
+        .filter(|s| !s.trim().is_empty())
+        .unwrap_or_else(names::new_batch_tag)
 }
 
 fn load_profile_ips(
@@ -79,12 +89,17 @@ pub fn netmod_cmd(
     opts: &GenOpts,
 ) -> AppResult {
     let (profile, ips) = load_profile_ips(work_dir, profile_name, resolvers_path, opts)?;
+    let batch = resolve_batch(opts);
     let run_dir = out_dir
         .map(|p| work(work_dir, p))
         .unwrap_or_else(|| output::new_run_dir(work_dir, "netmod"));
     std::fs::create_dir_all(&run_dir).map_err(|e| e.to_string())?;
-    let summary = netmod::generate(&profile, &ips, &run_dir, opts.shuffle)?;
-    println!("✅ NetMod: {} لینک → {}", summary.total, run_dir.display());
+    let summary = netmod::generate(&profile, &ips, &run_dir, opts.shuffle, &batch)?;
+    println!(
+        "✅ NetMod: {} لینک (batch {batch}) → {}",
+        summary.total,
+        run_dir.display()
+    );
     let _ = db::insert_run(
         work_dir,
         &format!(
@@ -112,22 +127,19 @@ pub fn dmvpn_cmd(
     opts: &GenOpts,
 ) -> AppResult {
     let (profile, ips) = load_profile_ips(work_dir, profile_name, resolvers_path, opts)?;
+    let batch = resolve_batch(opts);
     let run_dir = out_dir
         .map(|p| work(work_dir, p))
         .unwrap_or_else(|| output::new_run_dir(work_dir, "dmvpn"));
     std::fs::create_dir_all(&run_dir).map_err(|e| e.to_string())?;
-    let summary = dnstt::generate(&profile, &ips, &run_dir, mode)?;
+    let summary = dnstt::generate(&profile, &ips, &run_dir, mode, &batch)?;
     if !opts.no_dmvpn {
-        let dmvpn = dnstt::write_dmvpn_bundle(work_dir, &profile, &summary)?;
-        println!(
-            "📁 {} bundle: {}",
-            crate::names::DMVPN_LABEL,
-            dmvpn.display()
-        );
+        let dmvpn = dnstt::write_dmvpn_bundle(work_dir, &profile, &summary, &batch)?;
+        println!("📁 {} bundle: {}", names::DMVPN_LABEL, dmvpn.display());
     }
     println!(
-        "✅ {}: all={} per_dns={} → {}",
-        crate::names::DMVPN_LABEL,
+        "✅ {}: all={} per_dns={} (batch {batch}) → {}",
+        names::DMVPN_LABEL,
         summary.all_link.is_some(),
         summary.per_dns.len(),
         run_dir.display()
@@ -143,11 +155,15 @@ pub fn slipnet_cmd(
     opts: &GenOpts,
 ) -> AppResult {
     let (profile, ips) = load_profile_ips(work_dir, profile_name, resolvers_path, opts)?;
+    let batch = resolve_batch(opts);
     let run_dir = out_dir
         .map(|p| work(work_dir, p))
         .unwrap_or_else(|| output::new_run_dir(work_dir, "slipnet_uri"));
-    let n = slipnet_uri::generate(&profile, &ips, &run_dir)?;
-    println!("✅ SlipNet URI: {n} → {}", run_dir.display());
+    let n = slipnet_uri::generate(&profile, &ips, &run_dir, &batch)?;
+    println!(
+        "✅ SlipNet URI: {n} (batch {batch}) → {}",
+        run_dir.display()
+    );
     Ok(())
 }
 
@@ -158,6 +174,9 @@ pub fn all_cmd(
     out_dir: Option<PathBuf>,
     opts: &GenOpts,
 ) -> AppResult {
+    let batch = resolve_batch(opts);
+    let mut shared = opts.clone();
+    shared.batch = Some(batch.clone());
     let base = out_dir
         .map(|p| work(work_dir, p))
         .unwrap_or_else(|| output::new_run_dir(work_dir, "generate_all"));
@@ -169,7 +188,7 @@ pub fn all_cmd(
         profile_name,
         resolvers_path.clone(),
         Some(base.join("netmod")),
-        opts,
+        &shared,
     )?;
     dmvpn_cmd(
         work_dir,
@@ -177,15 +196,15 @@ pub fn all_cmd(
         resolvers_path.clone(),
         Some(base.join("dmvpn")),
         "both",
-        opts,
+        &shared,
     )?;
     slipnet_cmd(
         work_dir,
         profile_name,
         resolvers_path,
         Some(base.join("slipnet")),
-        opts,
+        &shared,
     )?;
-    println!("✅ generate all → {}", base.display());
+    println!("✅ generate all (batch {batch}) → {}", base.display());
     Ok(())
 }

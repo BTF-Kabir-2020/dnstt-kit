@@ -172,7 +172,7 @@ mod tests {
     #[test]
     fn verify_netmod_and_slipnet() {
         let p = profile();
-        let nm = netmod::netmod_link(&p, "1.1.1.1");
+        let nm = netmod::netmod_link(&p, "1.1.1.1", "BTF-test-AAAA-01");
         assert!(verify_one(&nm).is_ok());
         let sl = slipnet_uri::build_uri(&p, "1.1.1.1:53:0", "r");
         assert!(verify_one(&sl).is_ok());

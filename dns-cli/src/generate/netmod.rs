@@ -1,6 +1,7 @@
 //! سازندهٔ لینک NetMod: `dns://` + base64(JSON فشرده).
 
 use crate::config::Profile;
+use crate::names::{batch_item_label, ensure_person_name};
 use serde::Serialize;
 use serde_json::json;
 use std::fs;
@@ -9,6 +10,7 @@ use std::path::Path;
 #[derive(Debug, Serialize)]
 pub struct NetmodSummary {
     pub total: usize,
+    pub batch: String,
     pub txt_path: String,
     pub nm_dir: String,
     pub info_path: String,
@@ -23,13 +25,12 @@ pub fn normalize_resolver(resolver: &str) -> String {
     }
 }
 
-pub fn netmod_link(profile: &Profile, resolver: &str) -> String {
-    use crate::names::ensure_person_name;
+pub fn netmod_link(profile: &Profile, resolver: &str, display_ps: &str) -> String {
     use base64::engine::general_purpose::STANDARD;
     use base64::Engine;
 
     let mut obj = json!({
-        "ps": ensure_person_name(&profile.profile_name),
+        "ps": ensure_person_name(display_ps),
         "addr": normalize_resolver(resolver),
         "ns": profile.tunnel_domain,
         "pubkey": profile.pubkey,
@@ -42,8 +43,6 @@ pub fn netmod_link(profile: &Profile, resolver: &str) -> String {
         obj["pass"] = json!("");
     }
     let j = serde_json::to_string(&obj).expect("json");
-    // separators فشرده مثل Python separators=(",", ":") — serde بدون فاصله پیش‌فرض است اگر Value serialize شود
-    // برای اطمینان از فشرده بودن:
     let j = serde_json::to_vec(&obj)
         .ok()
         .and_then(|b| String::from_utf8(b).ok())
@@ -56,6 +55,7 @@ pub fn generate(
     resolvers: &[String],
     out_dir: &Path,
     shuffle: bool,
+    batch: &str,
 ) -> Result<NetmodSummary, String> {
     let mut list = resolvers.to_vec();
     if shuffle {
@@ -65,24 +65,34 @@ pub fn generate(
 
     let total = list.len();
     let ts = chrono::Local::now().format("%Y%m%d_%H%M%S");
-    let txt_name = format!("netmod_dns_{total}_{ts}.txt");
-    let nm_dir_name = format!("netmod_dns_{total}_{ts}_nm");
-    let info_name = format!("netmod_dns_{total}_{ts}_info.json");
+    let txt_name = format!("netmod_dns_{total}_{batch}_{ts}.txt");
+    let nm_dir_name = format!("netmod_dns_{total}_{batch}_{ts}_nm");
+    let info_name = format!("netmod_dns_{total}_{batch}_{ts}_info.json");
 
     let txt_path = out_dir.join(&txt_name);
     let nm_dir = out_dir.join(&nm_dir_name);
     let info_path = out_dir.join(&info_name);
     fs::create_dir_all(&nm_dir).map_err(|e| e.to_string())?;
 
+    let base_name = if profile.remark.trim().is_empty() {
+        profile.profile_name.as_str()
+    } else {
+        profile.remark.as_str()
+    };
+
     let mut lines = Vec::new();
     let mut configs = Vec::new();
     for (i, r) in list.iter().enumerate() {
-        let link = netmod_link(profile, r);
+        let idx = i + 1;
+        let ps = batch_item_label(base_name, batch, idx);
+        let link = netmod_link(profile, r, &ps);
         lines.push(link.clone());
-        let nm_path = nm_dir.join(format!("{:03}.nm", i + 1));
+        let nm_path = nm_dir.join(format!("{batch}_{idx:03}.nm"));
         fs::write(&nm_path, format!("{}\n", link.trim())).map_err(|e| e.to_string())?;
         configs.push(json!({
-            "id": i + 1,
+            "id": idx,
+            "batch": batch,
+            "ps": ps,
             "resolver": r,
             "link": link,
         }));
@@ -92,6 +102,7 @@ pub fn generate(
     let info = json!({
         "generated_at": chrono::Local::now().format("%Y-%m-%d %H:%M:%S").to_string(),
         "format": "dns:// + base64(json)",
+        "batch": batch,
         "ns": profile.tunnel_domain,
         "include_ssh_credentials": profile.include_ssh,
         "total": total,
@@ -105,6 +116,7 @@ pub fn generate(
 
     Ok(NetmodSummary {
         total,
+        batch: batch.to_string(),
         txt_path: txt_path.display().to_string(),
         nm_dir: nm_dir.display().to_string(),
         info_path: info_path.display().to_string(),
@@ -133,7 +145,7 @@ mod tests {
 
     #[test]
     fn link_has_dns_scheme() {
-        let link = netmod_link(&sample_profile(), "8.8.8.8");
+        let link = netmod_link(&sample_profile(), "8.8.8.8", "BTF-test-K7HM-01");
         assert!(link.starts_with("dns://"));
         use base64::Engine;
         let b64 = &link["dns://".len()..];
@@ -143,5 +155,6 @@ mod tests {
         let v: serde_json::Value = serde_json::from_slice(&raw).unwrap();
         assert_eq!(v["addr"], "8.8.8.8:53");
         assert_eq!(v["ns"], "demo.example.com");
+        assert_eq!(v["ps"], "BTF-test-K7HM-01");
     }
 }

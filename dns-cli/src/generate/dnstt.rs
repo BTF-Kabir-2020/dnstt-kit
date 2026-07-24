@@ -4,6 +4,9 @@ use super::kryo::{
     build_sn_dnstt_link, normalize_dns_resolvers, serialize_dnstt_bean_v3, DnsttBean,
 };
 use crate::config::Profile;
+use crate::names::{
+    batch_all_label, batch_item_label, ensure_person_name, uppercase_dmvpn_label, DMVPN_LABEL,
+};
 use serde_json::json;
 use std::collections::BTreeMap;
 use std::fs;
@@ -13,6 +16,7 @@ use std::path::Path;
 pub struct DnsttSummary {
     pub all_link: Option<String>,
     pub per_dns: BTreeMap<String, String>,
+    pub batch: String,
 }
 
 fn bean_from_profile(profile: &Profile, dns_resolver: &str, name: &str) -> DnsttBean {
@@ -42,6 +46,7 @@ pub fn generate(
     resolvers: &[String],
     out_dir: &Path,
     mode: &str,
+    batch: &str,
 ) -> Result<DnsttSummary, String> {
     let mode = mode.to_ascii_lowercase();
     let want_all = mode == "all" || mode == "both";
@@ -50,11 +55,19 @@ pub fn generate(
     let mut summary = DnsttSummary {
         all_link: None,
         per_dns: BTreeMap::new(),
+        batch: batch.to_string(),
+    };
+
+    let base_name = if profile.remark.trim().is_empty() {
+        profile.profile_name.as_str()
+    } else {
+        profile.remark.as_str()
     };
 
     if want_all {
         let dns_for_bean = normalize_dns_resolvers(resolvers);
-        let bean = bean_from_profile(profile, &dns_for_bean, &profile.remark);
+        let name = batch_all_label(base_name, batch);
+        let bean = bean_from_profile(profile, &dns_for_bean, &name);
         let raw = serialize_dnstt_bean_v3(&bean);
         let link = build_sn_dnstt_link(&raw);
         fs::write(out_dir.join("dnstt_all_dns.txt"), format!("{link}\n"))
@@ -64,9 +77,9 @@ pub fn generate(
 
     if want_each {
         let mut lines = Vec::new();
-        for dns in resolvers {
+        for (i, dns) in resolvers.iter().enumerate() {
             let dns_norm = normalize_dns_resolvers(std::slice::from_ref(dns));
-            let name = format!("{} ({dns})", profile.remark);
+            let name = batch_item_label(base_name, batch, i + 1);
             let bean = bean_from_profile(profile, &dns_norm, &name);
             let raw = serialize_dnstt_bean_v3(&bean);
             let link = build_sn_dnstt_link(&raw);
@@ -78,6 +91,7 @@ pub fn generate(
     }
 
     let json_data = json!({
+        "batch": batch,
         "all_dns": summary.all_link.as_ref().map(|l| json!({"ip": "all", "link": l})),
         "per_dns": summary.per_dns.iter().map(|(k,v)| (k.clone(), json!({"ip": k, "link": v}))).collect::<BTreeMap<_,_>>(),
         "generated_at": chrono::Local::now().to_rfc3339(),
@@ -92,20 +106,22 @@ pub fn generate(
     Ok(summary)
 }
 
-/// خروجی شبیه اسکریپت قدیمی: `{DMVPN_LABEL}/<ts>_<remark>/`
+/// خروجی: `{DMVPN_LABEL}/<ts>_<batch>_<remark>/`
 pub fn write_dmvpn_bundle(
     work_dir: &Path,
     profile: &Profile,
     summary: &DnsttSummary,
+    batch: &str,
 ) -> Result<std::path::PathBuf, String> {
-    use crate::names::{ensure_person_name, uppercase_dmvpn_label, DMVPN_LABEL};
     let ts = chrono::Local::now().format("%Y%m%d_%H%M%S");
     let remark = uppercase_dmvpn_label(&ensure_person_name(&profile.remark));
     let safe: String = remark
         .chars()
         .map(|c| if c.is_alphanumeric() { c } else { '_' })
         .collect();
-    let folder = work_dir.join(DMVPN_LABEL).join(format!("{ts}_{safe}"));
+    let folder = work_dir
+        .join(DMVPN_LABEL)
+        .join(format!("{ts}_{}_{safe}", summary.batch));
     fs::create_dir_all(&folder).map_err(|e| e.to_string())?;
     if let Some(link) = &summary.all_link {
         fs::write(folder.join("dnstt_all_dns.txt"), format!("{link}\n"))
@@ -118,6 +134,7 @@ pub fn write_dmvpn_bundle(
     fs::write(folder.join("dnstt_per_dns.txt"), lines.join("\n") + "\n")
         .map_err(|e| e.to_string())?;
     let json_data = json!({
+        "batch": batch,
         "all_dns": summary.all_link.as_ref().map(|l| json!({"ip": "all", "link": l})),
         "per_dns": summary.per_dns.iter().map(|(k,v)| (k.clone(), json!({"ip": k, "link": v}))).collect::<BTreeMap<_,_>>(),
         "generated_at": chrono::Local::now().to_rfc3339(),

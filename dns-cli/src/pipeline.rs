@@ -314,6 +314,7 @@ pub fn run(work_dir: &Path, args: PipelineArgs) -> AppResult {
         let want_netmod = want_all || kinds.contains("netmod");
         let want_dmvpn = want_all || kinds.contains("dmvpn") || kinds.contains("dnstt");
         let want_slip = want_all || kinds.contains("slipnet");
+        let batch = crate::names::new_batch_tag();
         let gen_opts = generate::GenOpts {
             limit: None,
             no_dmvpn: args.no_dmvpn,
@@ -321,7 +322,11 @@ pub fn run(work_dir: &Path, args: PipelineArgs) -> AppResult {
             ns: None,
             pubkey: None,
             remark: None,
+            batch: Some(batch.clone()),
         };
+        if !args.quiet {
+            println!("🏷️  generate batch tag: {batch}");
+        }
         if want_netmod {
             generate::netmod_cmd(
                 work_dir,

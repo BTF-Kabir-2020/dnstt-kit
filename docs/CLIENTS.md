@@ -5,10 +5,22 @@ This kit **scans resolvers** and **builds import links**. It is not a VPN app.
 | Client | Status in dnstt-kit | What we emit |
 |--------|---------------------|--------------|
 | **NetMod** | Supported | `dns://` + base64(JSON) |
-| **DMVPN** | Supported | `sn://dnstt?…` under `configs/dmvpn/` and root `DMVPN/<ts>_…/` |
+| **DMVPN** | Supported | `sn://dnstt?…` under `configs/dmvpn/` and root `DMVPN/<ts>_<batch>_…/` |
 | **SlipNet** | Supported | `slipnet://…` (+ optional local `slipnet` binary) |
-| **VayDNS** | Via SlipNet | Use SlipNet tunnel types `vaydns` / `vaydns_ssh` on the app/server side; this kit’s default URI is classic `dnstt` / `dnstt_ssh` |
-| **MasterDnsVPN** | Resolvers only | Different protocol (TOML + shared encrypt key). Export scan hits with `dns-cli resolvers export-txt` → `client_resolvers.txt`. Do **not** paste a DNSTT Noise pubkey into MasterDnsVPN as its encryption key |
+| **MasterDnsVPN** | Resolvers only | Different protocol. Export scan hits with `dns-cli resolvers export-txt` → `client_resolvers.txt`. Do **not** paste a DNSTT Noise pubkey as its encryption key |
+
+## Batch labels (same-day runs)
+
+Each `generate` / `pipeline` run mints a short **batch tag** (e.g. `K7HM`). Display names across NetMod / DMVPN / SlipNet share it:
+
+```text
+BTFJang891-K7HM-01
+BTFJang891-K7HM-02
+…
+BTFJang891-K7HM-all   ← combined “all resolvers” link where applicable
+```
+
+So a second run the same day gets another tag (`P3WQ`, …) and lists do not collide. The tag is also in filenames / `*_info.json` / `*_links.json` (`"batch"`).
 
 ## Decode an existing link
 
@@ -27,4 +39,4 @@ Full operator flow (scan → SlipNet e2e → categorized configs): [WORKFLOW.md]
 
 1. Keep NetMod + DMVPN + SlipNet correct (phone/desktop imports).
 2. Keep resolver scan solid (this is the unique value vs pure apps).
-3. MasterDnsVPN / VayDNS-native URI: only if someone needs a concrete export format — do not pretend they are the same wire protocol as DNSTT.
+3. Extra client formats only when someone needs a concrete export — do not invent unsupported schemes.
