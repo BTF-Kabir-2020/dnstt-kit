@@ -10,8 +10,6 @@
 
 Author: [BTF Kabir](https://github.com/BTF-Kabir-2020)
 
-**BTF** is a person’s name (not a product brand) — uppercase only when it appears in remarks/`ps`. **DMVPN** is a tunnel client (like SlipNet); folder + spelling always `DMVPN`. See [docs/NAMES.md](docs/NAMES.md).
-
 This is **not** a phone VPN app. Apps like SlipNet / NetMod connect the tunnel; this kit helps you **scan + build configs** for your own server. Educational / personal / research use. See [LICENSE](LICENSE) (non-commercial).
 
 **PRs welcome** — [CONTRIBUTING.md](CONTRIBUTING.md).
@@ -99,18 +97,18 @@ Your NetMod link is base64 JSON (`ps`, `addr`, `ns`, `pubkey`, optional `user`/`
 
 ```powershell
 # one-shot (scan + e2e + generate). Example list: dnsir.txt in kit root (gitignored)
-.\dns-cli.cmd pipeline run --input dnsir.txt --profile mytunnel --preset low --limit 50 --no-dmvpn
+.\dns-cli.cmd pipeline run --input dnsir.txt --profile mytunnel --preset low --limit 50
 
 # or: scan first, then continue without re-scanning
 .\dns-cli.cmd scan dnsir.txt --preset low --domain YOUR.TUNNEL.DOMAIN --a-domain cloudflare.com --limit 50
-.\dns-cli.cmd pipeline run --input dnsir.txt --profile mytunnel --skip-scan --no-dmvpn
+.\dns-cli.cmd pipeline run --input dnsir.txt --profile mytunnel --skip-scan
 ```
 
-`scan` alone does **not** run SlipNet e2e or emit client configs.
+`scan` alone does **not** run SlipNet e2e or emit client configs. Pipeline/generate also writes a **DMVPN** import bundle under `DMVPN/` by default.
 
 Then:
 
-1. **Phone** — import links from `runs\pipeline_*\configs\netmod\` (or SlipNet / NekoBox folders) and Connect.
+1. **Phone** — import from `runs\pipeline_*\configs\netmod\` (or SlipNet / NekoBox / `DMVPN/`) and Connect.
 2. **UDP-only probe** (no configs):
 
 ```powershell
@@ -122,7 +120,7 @@ Then:
 
 ```powershell
 .\dns-cli.cmd resolvers sync --from-txt out\txt\dns_ok_and_dnsonly_ips.txt
-.\dns-cli.cmd generate all --profile mytunnel --resolvers resolvers.json --limit 50 --no-dmvpn
+.\dns-cli.cmd generate all --profile mytunnel --resolvers resolvers.json --limit 50
 .\dns-cli.cmd resolvers export-txt --input resolvers.json --out client_resolvers.txt
 ```
 
@@ -133,7 +131,7 @@ Never commit real `profiles.json`, live URIs, or huge resolver dumps.
 ## What’s in the box
 
 - Scan with presets `low` / `normal` / `fast` — **`low` streams to disk** (line-by-line; RAM ≈ O(workers)). Huge lists stay memory-safe on small VPS; wall-clock is still network-bound. See [docs/MEMORY.md](docs/MEMORY.md)
-- Generate NetMod, DNSTT/NekoBox, SlipNet URI
+- Generate NetMod, DNSTT/NekoBox, SlipNet URI, and DMVPN import bundle
 - Decode existing `dns://` / `slipnet://` into a local profile
 - Slipnet offline-first (`vendor/slipnet/…`; fetch is opt-in)
 - Web UI with local Tailwind Play CDN (`dns-cli/static/tailwindcss.js`)
@@ -164,7 +162,6 @@ Details: [SECURITY.md](SECURITY.md), [docs/SECURITY_WEB.md](docs/SECURITY_WEB.md
 | [docs/WORKFLOW.md](docs/WORKFLOW.md) | scan → e2e → configs |
 | [docs/SCAN.md](docs/SCAN.md) | UDP success rule (scanner2-aligned) |
 | [docs/CLIENTS.md](docs/CLIENTS.md) | NetMod / SlipNet / MasterDnsVPN / VayDNS |
-| [docs/NAMES.md](docs/NAMES.md) | BTF (person) / DMVPN spelling |
 | [docs/WEB.md](docs/WEB.md) | Web panel |
 | [docs/FFI_PYTHON.md](docs/FFI_PYTHON.md) | DLL / SO / Android FFI |
 | [docs/ENV.md](docs/ENV.md) | `.env` |

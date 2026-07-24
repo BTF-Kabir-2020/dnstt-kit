@@ -4,7 +4,7 @@
 
 Maintainer: [BTF Kabir](https://github.com/BTF-Kabir-2020) (`@BTF-Kabir-2020`)
 
-**BTF** is a **person’s name** (not a brand) — uppercase in remarks/`ps` when present; do **not** use it as `--profile` id. **DMVPN** is a tunnel client (like SlipNet); spelling always uppercase. See [docs/NAMES.md](docs/NAMES.md). Do not add lowercased spellings of those tokens as string literals in source or tests; use `BTF_NAME` / `DMVPN_LABEL` and `to_ascii_lowercase()` when a probe is required.
+Casing helpers for remarks / export folders: [docs/NAMES.md](docs/NAMES.md).
 
 ## Quick path
 

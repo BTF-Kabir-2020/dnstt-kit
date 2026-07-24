@@ -37,7 +37,7 @@
 
 ## فلگ‌های pipeline
 
-`--auto-archive` · `--auto-backup` · `--slipnet-probe` · `--skip-scan` · `--skip-slipnet` · `--no-dmvpn`
+`--auto-archive` · `--auto-backup` · `--slipnet-probe` · `--skip-scan` · `--skip-slipnet` · `--no-dmvpn` (opt-out of the default **DMVPN** bundle)
 
 - اگر `SLIPNET_CONFIG` خالی باشد، e2e از `--profile` یک `slipnet://` می‌سازد.
 - لیست IP برای e2e همیشه از `resolvers` همان run است (`e2e_candidate_ips.txt`)، نه فایل کهنهٔ ریشه.
@@ -59,7 +59,7 @@
 cargo test -p dns-cli
 .\target\debug\dns-cli.exe doctor
 .\target\debug\dns-cli.exe scan testdata\dns_sample.txt --preset low --limit 3 --quiet
-.\target\debug\dns-cli.exe generate all --resolvers testdata\resolvers_sample.json --limit 2 --no-dmvpn --out-dir runs\tmp_gen
+.\target\debug\dns-cli.exe generate all --resolvers testdata\resolvers_sample.json --limit 2 --out-dir runs\tmp_gen
 .\target\debug\dns-cli.exe verify runs\tmp_gen\netmod\....txt
 .\target\debug\dns-cli.exe verify "dns://...."
 ```

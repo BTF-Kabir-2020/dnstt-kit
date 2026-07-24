@@ -280,7 +280,7 @@ pub fn default_pipeline_args(
         limit,
         workers: None,
         dry_run: false,
-        no_dmvpn: true,
+        no_dmvpn: false,
         generate_kinds: "all".into(),
         quiet: true,
         auto_archive: false,

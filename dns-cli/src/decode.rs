@@ -284,13 +284,13 @@ pub fn run(
         );
         if let Some(name) = save_profile.as_ref() {
             println!(
-                "  dns-cli pipeline run --input dnsir.txt --profile {name} --preset low --limit 50 --no-dmvpn"
+                "  dns-cli pipeline run --input dnsir.txt --profile {name} --preset low --limit 50"
             );
-            println!("  # continue after scan:  … --skip-scan --no-dmvpn");
+            println!("  # continue after scan:  … --skip-scan");
         } else {
             println!("  dns-cli decode \"…\" --save-profile mytunnel");
             println!(
-                "  dns-cli pipeline run --input dnsir.txt --profile mytunnel --preset low --limit 50 --no-dmvpn"
+                "  dns-cli pipeline run --input dnsir.txt --profile mytunnel --preset low --limit 50"
             );
         }
         println!();

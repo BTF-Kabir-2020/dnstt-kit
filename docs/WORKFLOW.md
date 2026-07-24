@@ -4,10 +4,6 @@
 
 Scan labels / NODATA+SOA / `--domain` extras: **[SCAN.md](SCAN.md)** (kept aligned with Amir/`scanner2` — do not over-harden the UDP success rule). **e2e** is the tunnel ground truth, not `txt_ok`.
 
-**BTF** is a **person’s name** (not a brand) — always uppercase when it appears in remarks/`ps`. **DMVPN** is a tunnel client (like SlipNet); spelling always uppercase. Details: [NAMES.md](NAMES.md).
-
-Current tunnel profile id: **`zenadartabestan`** (NS `zenadartabestan.darkmous.ir`; remark/`ps` stays `BTFJang891`).
-
 ```text
 dnsir.txt (IP:port list)
         │
@@ -24,10 +20,10 @@ dnsir.txt (IP:port list)
 
 | Step | Command | Output |
 |------|---------|--------|
-| 1. Save tunnel | `decode "dns://…" --save-profile NAME` | `config/profiles.json` (gitignored) |
+| 1. Save tunnel | `decode "dns://…" --save-profile mytunnel` | `config/profiles.json` (gitignored) |
 | 2a. Probe only | `scan dnsir.txt --preset low --domain NS --limit 50` | `runs/scan_*/`, `out/txt/…` (OK + DNS_ONLY by default) |
-| 2b. Full | `pipeline run --input dnsir.txt --profile zenadartabestan --preset low --limit 50 --no-dmvpn` | scan + e2e + configs |
-| 2c. Continue | `pipeline run --input dnsir.txt --profile zenadartabestan --skip-scan --no-dmvpn` | e2e + configs from last working list (`out/json` / prior scan) |
+| 2b. Full | `pipeline run --input dnsir.txt --profile mytunnel --preset low --limit 50` | scan + e2e + configs (+ `DMVPN/` bundle) |
+| 2c. Continue | `pipeline run --input dnsir.txt --profile mytunnel --skip-scan` | e2e + configs from last working list (`out/json` / prior scan) |
 
 `--skip-scan` with an **empty** `out/json` + `out/txt` fails (`resolvers list is empty`). A non-empty stale `out/` is reused on purpose (last working list) — prefer a fresh scan or an explicit resolvers path when unsure.
 
@@ -56,6 +52,8 @@ runs/pipeline_<id>/configs/
   netmod/    dns:// + .nm   → NetMod
   dnstt/     sn://          → NekoBox
   slipnet/   slipnet://     → SlipNet
+
+Also (by default): DMVPN/<timestamp>_<remark>/  → DMVPN import bundle
 ```
 
 If e2e ran and found survivors, generate uses **only** `e2e_passed` IPs.

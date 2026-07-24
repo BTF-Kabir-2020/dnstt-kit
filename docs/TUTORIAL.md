@@ -72,7 +72,7 @@ python run.py serve --bind 127.0.0.1:8787
 ## ۴) تولید کانفیگ
 
 ```powershell
-.\dns-cli.cmd generate all --profile demo --resolvers testdata\resolvers_sample.json --limit 10 --no-dmvpn
+.\dns-cli.cmd generate all --profile demo --resolvers testdata\resolvers_sample.json --limit 10
 ```
 
 ## ۵) پنل وب / منوی ترمینال

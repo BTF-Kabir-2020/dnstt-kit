@@ -1,15 +1,11 @@
-//! Fixed display spellings used in this kit.
-//!
-//! - [`BTF_NAME`]: a **person’s name** (human). Not a product brand. Always ASCII uppercase in text.
-//! - [`DMVPN_LABEL`]: output-folder / label spelling. Always ASCII uppercase in text.
-//!
-//! Source and tests must not embed lowercased copies of these spellings as string literals;
-//! derive via `to_ascii_lowercase()` on the constants when a probe string is needed.
+//! Fixed display spellings used in this kit (`BTF_NAME`, `DMVPN_LABEL`).
+//! Prefer these constants; probe via `to_ascii_lowercase()` instead of hardcoding
+//! alternate-case string literals in tests.
 
-/// Person’s name (ASCII uppercase only).
+/// Remark / display token (ASCII uppercase).
 pub const BTF_NAME: &str = "BTF";
 
-/// Export-folder / label spelling (ASCII uppercase only).
+/// Export-folder label (ASCII uppercase).
 pub const DMVPN_LABEL: &str = "DMVPN";
 
 fn needle_lower(canon: &str) -> String {

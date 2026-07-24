@@ -36,7 +36,7 @@ Candidates often include **DNS_ONLY** rows (A ok, tunnel TXT timed out). That is
 
 ```powershell
 Copy-Item .env.example .env   # optional; profile auto-config is enough after decode --save-profile
-.\dns-cli.cmd pipeline run --input testdata\dns_sample.txt --profile demo --preset low --limit 3 --no-dmvpn
+.\dns-cli.cmd pipeline run --input testdata\dns_sample.txt --profile demo --preset low --limit 3
 ```
 
 Without a live dial: `.\dns-cli.cmd slipnet probe` or `pipeline … --skip-slipnet` / `--slipnet-probe`.

@@ -185,12 +185,12 @@ async fn run_async(work_dir: &Path, args: ScanArgs) -> AppResult {
             out.ok_and_dnsonly_ips.len()
         );
         println!("   run: {}", run_dir.display());
-        println!("ℹ️  scan = UDP resolver probe only (no SlipNet e2e, no NetMod/NekoBox configs).");
+        println!("ℹ️  scan = UDP resolver probe only (no SlipNet e2e, no NetMod/NekoBox/DMVPN configs).");
         println!(
-            "   Continue:  dns-cli pipeline run --input <list.txt> --profile <name> --skip-scan --no-dmvpn"
+            "   Continue:  dns-cli pipeline run --input <list.txt> --profile <name> --skip-scan"
         );
         println!(
-            "   Or one-shot: dns-cli pipeline run --input <list.txt> --profile <name> --preset low --limit N --no-dmvpn"
+            "   Or one-shot: dns-cli pipeline run --input <list.txt> --profile <name> --preset low --limit N"
         );
     }
     let run_key = run_dir

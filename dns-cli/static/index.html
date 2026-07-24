@@ -131,7 +131,7 @@
       </div>
       <div class="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2">
         <label class="flex min-h-10 items-center gap-2 text-sm"><input type="checkbox" id="skip_slipnet" checked/> skip_slipnet</label>
-        <label class="flex min-h-10 items-center gap-2 text-sm"><input type="checkbox" id="no_dmvpn" checked/> no_dmvpn</label>
+        <label class="flex min-h-10 items-center gap-2 text-sm"><input type="checkbox" id="no_dmvpn"/> skip DMVPN bundle</label>
         <label class="flex min-h-10 items-center gap-2 text-sm"><input type="checkbox" id="quiet" checked/> quiet</label>
         <label class="flex min-h-10 items-center gap-2 text-sm"><input type="checkbox" id="auto_archive"/> auto_archive</label>
         <label class="flex min-h-10 items-center gap-2 text-sm"><input type="checkbox" id="auto_backup"/> auto_backup</label>
@@ -144,9 +144,9 @@
     </div>
     <details class="rounded-xl border border-dashed border-line p-3" open>
       <summary class="flex min-h-10 cursor-pointer items-center font-semibold">Free CLI command</summary>
-      <textarea id="cmdline" class="mt-3 min-h-[88px] w-full resize-y rounded-lg border border-line bg-soft px-3 py-2 font-mono text-sm" placeholder="generate all --profile demo --resolvers testdata/resolvers_sample.json --limit 2 --no-dmvpn"></textarea>
+      <textarea id="cmdline" class="mt-3 min-h-[88px] w-full resize-y rounded-lg border border-line bg-soft px-3 py-2 font-mono text-sm" placeholder="generate all --profile demo --resolvers testdata/resolvers_sample.json --limit 2"></textarea>
       <div class="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-2">
-        <button class="btn-secondary" type="button" data-cmd="generate all --profile demo --resolvers testdata/resolvers_sample.json --limit 2 --no-dmvpn">sample generate</button>
+        <button class="btn-secondary" type="button" data-cmd="generate all --profile demo --resolvers testdata/resolvers_sample.json --limit 2">sample generate</button>
         <button class="btn-secondary" type="button" data-cmd="profiles list">profiles list</button>
         <button class="btn-secondary" type="button" data-cmd="slipnet which">slipnet which</button>
         <button class="btn-secondary" type="button" data-cmd="status">status</button>
