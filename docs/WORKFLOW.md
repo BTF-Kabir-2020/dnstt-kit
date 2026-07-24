@@ -49,11 +49,11 @@ After a successful pipeline:
 
 ```text
 runs/pipeline_<id>/configs/
-  netmod/    dns:// + .nm   → NetMod
-  dnstt/     sn://          → NekoBox
+  netmod/    dns://         → NetMod
+  dmvpn/     sn://dnstt?…   → DMVPN
   slipnet/   slipnet://     → SlipNet
 
-Also (by default): DMVPN/<timestamp>_<remark>/  → DMVPN import bundle
+Also (by default): DMVPN/<timestamp>_<remark>/  → same sn:// links as a dated import bundle
 ```
 
 If e2e ran and found survivors, generate uses **only** `e2e_passed` IPs.

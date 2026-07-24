@@ -50,14 +50,14 @@ fn generate_netmod_sample() {
 }
 
 #[test]
-fn generate_dnstt_sample() {
+fn generate_dmvpn_sample() {
     let root = root();
     let tmp = tempfile::tempdir().unwrap();
     let out = bin()
         .current_dir(&root)
         .args([
             "generate",
-            "dnstt",
+            "dmvpn",
             "--profile",
             "demo",
             "--resolvers",

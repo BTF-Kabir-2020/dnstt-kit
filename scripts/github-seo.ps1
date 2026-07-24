@@ -5,7 +5,7 @@ $Repo = "BTF-Kabir-2020/dnstt-kit"
 gh auth status | Out-Null
 
 gh repo edit $Repo `
-  --description "DNSTT toolkit (Rust): scan UDP resolvers, decode/generate NetMod NekoBox SlipNet configs, offline slipnet, localhost web UI, Docker" `
+  --description "DNSTT toolkit (Rust): scan UDP resolvers, decode/generate NetMod DMVPN SlipNet configs, offline slipnet, localhost web UI, Docker" `
   --homepage "https://github.com/BTF-Kabir-2020/dnstt-kit/wiki"
 
 # Full replace — no locale/region topics (persian/farsi/iran/…)

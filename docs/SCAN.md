@@ -2,7 +2,7 @@
 
 > Updated: 2026-07-24 · Aligned with the historical Amir/`scanner2` core (do not over-harden).
 
-`dns-cli scan` only probes resolvers over UDP. It does **not** dial the tunnel and does **not** emit NetMod/NekoBox/SlipNet configs. For that use [`pipeline run`](WORKFLOW.md).
+`dns-cli scan` only probes resolvers over UDP. It does **not** dial the tunnel and does **not** emit NetMod/DMVPN/SlipNet configs. For that use [`pipeline run`](WORKFLOW.md).
 
 ## Success rule (header)
 

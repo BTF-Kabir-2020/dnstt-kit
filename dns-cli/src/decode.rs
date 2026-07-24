@@ -65,7 +65,7 @@ pub fn decode_uri(uri: &str) -> Result<DecodedLink, String> {
         return decode_slipnet(rest);
     }
     if let Some(rest) = uri.strip_prefix("sn://dnstt?") {
-        return decode_nekobox(rest);
+        return decode_sn_dnstt(rest);
     }
     Err("unknown scheme (expected dns:// | slipnet:// | sn://dnstt?)".into())
 }
@@ -160,7 +160,7 @@ fn decode_slipnet(b64: &str) -> Result<DecodedLink, String> {
     })
 }
 
-fn decode_nekobox(rest: &str) -> Result<DecodedLink, String> {
+fn decode_sn_dnstt(rest: &str) -> Result<DecodedLink, String> {
     let b64 = rest.split('#').next().unwrap_or(rest).trim();
     let compressed = URL_SAFE_NO_PAD
         .decode(b64)
@@ -186,8 +186,8 @@ fn decode_nekobox(rest: &str) -> Result<DecodedLink, String> {
     let _ = kryo::b64_url_safe_no_pad;
     // Full Kryo field walk is heavy; link is valid but use dns:// / slipnet:// for --save-profile.
     Ok(DecodedLink {
-        kind: "nekobox/sn://dnstt",
-        remark: "nekobox".into(),
+        kind: "dmvpn/sn://dnstt",
+        remark: "dmvpn".into(),
         tunnel_domain: String::new(),
         pubkey: String::new(),
         resolver: String::new(),
@@ -280,7 +280,7 @@ pub fn run(
         );
         println!();
         println!(
-            "Full path (UDP + SlipNet e2e + NetMod/NekoBox/SlipNet configs) — docs/WORKFLOW.md:"
+            "Full path (UDP + SlipNet e2e + NetMod/DMVPN/SlipNet configs) — docs/WORKFLOW.md:"
         );
         if let Some(name) = save_profile.as_ref() {
             println!(

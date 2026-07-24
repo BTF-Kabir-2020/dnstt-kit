@@ -11,7 +11,7 @@ Or manually:
 
 ```powershell
 gh repo edit BTF-Kabir-2020/dnstt-kit `
-  --description "DNSTT toolkit (Rust): scan UDP resolvers, decode/generate NetMod NekoBox SlipNet configs, offline slipnet, localhost web UI, Docker" `
+  --description "DNSTT toolkit (Rust): scan UDP resolvers, decode/generate NetMod DMVPN SlipNet configs, offline slipnet, localhost web UI, Docker" `
   --homepage "https://github.com/BTF-Kabir-2020/dnstt-kit/wiki"
 
 .\scripts\github-seo.ps1
@@ -19,7 +19,7 @@ gh repo edit BTF-Kabir-2020/dnstt-kit `
 
 Suggested About text:
 
-`DNSTT toolkit (Rust): scan UDP resolvers, decode/generate NetMod NekoBox SlipNet configs, offline slipnet, localhost web UI, Docker`
+`DNSTT toolkit (Rust): scan UDP resolvers, decode/generate NetMod DMVPN SlipNet configs, offline slipnet, localhost web UI, Docker`
 
 Topics (no locale/region tags): `rust` `dnstt` `dns` `dns-tunnel` `networking` `cli` `scanner` `web-ui` `docker` `offline-first` `sqlite` `security` `ffi` `android` `open-source` `tailwindcss`
 

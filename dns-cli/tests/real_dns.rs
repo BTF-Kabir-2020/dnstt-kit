@@ -76,8 +76,8 @@ fn pipeline_skip_slipnet_end_to_end() {
         "stderr={}",
         String::from_utf8_lossy(&out.stderr)
     );
-    let dnstt = root.join("runs/test_pipeline_noslip/configs/dnstt/dnstt_all_dns.txt");
-    assert!(dnstt.is_file());
-    let link = std::fs::read_to_string(dnstt).unwrap();
+    let dmvpn = root.join("runs/test_pipeline_noslip/configs/dmvpn/dnstt_all_dns.txt");
+    assert!(dmvpn.is_file());
+    let link = std::fs::read_to_string(dmvpn).unwrap();
     assert!(link.starts_with("sn://dnstt?"));
 }

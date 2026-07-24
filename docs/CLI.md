@@ -34,12 +34,13 @@ dns-cli verify runs\...\netmod_....txt
 dns-cli verify "dns://...."
 dns-cli resolvers export-txt --input resolvers.json --out client_resolvers.txt
 dns-cli resolvers exclude --input resolvers.json --exclude bad.txt
+dns-cli generate dmvpn --profile mytunnel --resolvers resolvers.json --limit 50
 dns-cli pipeline run --input dnsir.txt --profile mytunnel --preset low --limit 50
 dns-cli pipeline run --input dnsir.txt --profile mytunnel --skip-scan
 dns-cli pipeline run ... --auto-archive --auto-backup
 ```
 
-`scan` = UDP probe only (OK / DNS_ONLY / FAIL — see [SCAN.md](SCAN.md)). `pipeline` = scan (optional) → SlipNet e2e → `configs/{netmod,dnstt,slipnet}/` plus the **DMVPN** bundle under `DMVPN/` (default).
+`scan` = UDP probe only (OK / DNS_ONLY / FAIL — see [SCAN.md](SCAN.md)). `pipeline` = scan (optional) → SlipNet e2e → `configs/{netmod,dmvpn,slipnet}/` (DMVPN also gets a dated root `DMVPN/` bundle by default).
 
 ## slipnet / archive / backup / clean
 

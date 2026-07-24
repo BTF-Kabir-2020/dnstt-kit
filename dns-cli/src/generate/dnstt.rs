@@ -1,4 +1,4 @@
-//! تولید لینک `sn://dnstt` از پروفایل + لیست رزالور.
+//! `sn://dnstt?` link builder (DMVPN import format) from profile + resolvers.
 
 use super::kryo::{
     build_sn_dnstt_link, normalize_dns_resolvers, serialize_dnstt_bean_v3, DnsttBean,

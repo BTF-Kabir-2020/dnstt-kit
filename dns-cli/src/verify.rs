@@ -121,7 +121,7 @@ fn verify_one(line: &str) -> Result<&'static str, String> {
             return Err(format!("dnstt unexpected version {ver}"));
         }
         let _ = kryo::b64_url_safe_no_pad; // keep module linked
-        return Ok("nekobox/sn://dnstt");
+        return Ok("dmvpn/sn://dnstt");
     }
     if let Some(rest) = line.strip_prefix("slipnet://") {
         let raw = STANDARD

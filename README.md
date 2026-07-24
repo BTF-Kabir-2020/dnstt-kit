@@ -1,4 +1,4 @@
-# dnstt-kit (Rust) — v0.1.2
+# dnstt-kit (Rust) — v0.1.3
 
 [![CI](https://github.com/BTF-Kabir-2020/dnstt-kit/actions/workflows/ci.yml/badge.svg)](https://github.com/BTF-Kabir-2020/dnstt-kit/actions/workflows/ci.yml)
 [![License](https://img.shields.io/badge/license-Non--Commercial-blue)](LICENSE)
@@ -6,11 +6,11 @@
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
 [![Release](https://img.shields.io/github/v/release/BTF-Kabir-2020/dnstt-kit)](https://github.com/BTF-Kabir-2020/dnstt-kit/releases)
 
-**Operator toolkit for DNSTT** — find working UDP resolvers, then generate import links for NetMod / NekoBox / SlipNet. Optional offline slipnet binary, localhost web UI, Docker.
+**Operator toolkit for DNSTT** — find working UDP resolvers, then generate import links for **NetMod** (`dns://`), **DMVPN** (`sn://dnstt?`), and **SlipNet**. Optional offline slipnet binary, localhost web UI, Docker.
 
 Author: [BTF Kabir](https://github.com/BTF-Kabir-2020)
 
-This is **not** a phone VPN app. Apps like SlipNet / NetMod connect the tunnel; this kit helps you **scan + build configs** for your own server. Educational / personal / research use. See [LICENSE](LICENSE) (non-commercial).
+This is **not** a phone VPN app. Apps like SlipNet / NetMod / DMVPN connect the tunnel; this kit helps you **scan + build configs** for your own server. Educational / personal / research use. See [LICENSE](LICENSE) (non-commercial).
 
 **PRs welcome** — [CONTRIBUTING.md](CONTRIBUTING.md).
 
@@ -93,7 +93,7 @@ Your NetMod link is base64 JSON (`ps`, `addr`, `ns`, `pubkey`, optional `user`/`
 .\dns-cli.cmd verify "dns://...."   # or a .txt of generated links
 ```
 
-**Full path (recommended):** UDP scan → SlipNet e2e → NetMod / NekoBox / SlipNet configs — see [docs/WORKFLOW.md](docs/WORKFLOW.md).
+**Full path (recommended):** UDP scan → SlipNet e2e → NetMod / DMVPN / SlipNet configs — see [docs/WORKFLOW.md](docs/WORKFLOW.md).
 
 ```powershell
 # one-shot (scan + e2e + generate). Example list: dnsir.txt in kit root (gitignored)
@@ -104,11 +104,11 @@ Your NetMod link is base64 JSON (`ps`, `addr`, `ns`, `pubkey`, optional `user`/`
 .\dns-cli.cmd pipeline run --input dnsir.txt --profile mytunnel --skip-scan
 ```
 
-`scan` alone does **not** run SlipNet e2e or emit client configs. Pipeline/generate also writes a **DMVPN** import bundle under `DMVPN/` by default.
+`scan` alone does **not** run SlipNet e2e or emit client configs. Pipeline/generate writes **DMVPN** links under `configs/dmvpn/` and (by default) a dated root `DMVPN/` bundle.
 
 Then:
 
-1. **Phone** — import from `runs\pipeline_*\configs\netmod\` (or SlipNet / NekoBox / `DMVPN/`) and Connect.
+1. **Phone** — import from `runs\pipeline_*\configs\netmod\` (`dns://`), `configs\dmvpn\` / `DMVPN\` (`sn://dnstt?`), or SlipNet folders and Connect.
 2. **UDP-only probe** (no configs):
 
 ```powershell
@@ -131,7 +131,7 @@ Never commit real `profiles.json`, live URIs, or huge resolver dumps.
 ## What’s in the box
 
 - Scan with presets `low` / `normal` / `fast` — **`low` streams to disk** (line-by-line; RAM ≈ O(workers)). Huge lists stay memory-safe on small VPS; wall-clock is still network-bound. See [docs/MEMORY.md](docs/MEMORY.md)
-- Generate NetMod, DNSTT/NekoBox, SlipNet URI, and DMVPN import bundle
+- Generate NetMod (`dns://`), DMVPN (`sn://dnstt?`), SlipNet URI
 - Decode existing `dns://` / `slipnet://` into a local profile
 - Slipnet offline-first (`vendor/slipnet/…`; fetch is opt-in)
 - Web UI with local Tailwind Play CDN (`dns-cli/static/tailwindcss.js`)
@@ -161,7 +161,7 @@ Details: [SECURITY.md](SECURITY.md), [docs/SECURITY_WEB.md](docs/SECURITY_WEB.md
 | [docs/CLI.md](docs/CLI.md) | Commands |
 | [docs/WORKFLOW.md](docs/WORKFLOW.md) | scan → e2e → configs |
 | [docs/SCAN.md](docs/SCAN.md) | UDP success rule (scanner2-aligned) |
-| [docs/CLIENTS.md](docs/CLIENTS.md) | NetMod / SlipNet / MasterDnsVPN / VayDNS |
+| [docs/CLIENTS.md](docs/CLIENTS.md) | NetMod / DMVPN / SlipNet / … |
 | [docs/WEB.md](docs/WEB.md) | Web panel |
 | [docs/FFI_PYTHON.md](docs/FFI_PYTHON.md) | DLL / SO / Android FFI |
 | [docs/ENV.md](docs/ENV.md) | `.env` |

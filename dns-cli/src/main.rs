@@ -257,7 +257,9 @@ enum GenerateCmd {
         #[arg(long)]
         remark: Option<String>,
     },
-    Dnstt {
+    /// DMVPN links (`sn://dnstt?…`); alias: `dnstt`
+    #[command(name = "dmvpn", alias = "dnstt")]
+    Dmvpn {
         #[arg(long, default_value = "demo")]
         profile: String,
         #[arg(long, default_value = "resolvers.json")]
@@ -268,7 +270,10 @@ enum GenerateCmd {
         mode: String,
         #[arg(long)]
         limit: Option<usize>,
-        #[arg(long, help = "Skip writing the DMVPN client export bundle")]
+        #[arg(
+            long,
+            help = "Skip writing the root DMVPN/<ts>_… bundle (run configs/dmvpn still written)"
+        )]
         no_dmvpn: bool,
         #[arg(long)]
         ns: Option<String>,
@@ -472,7 +477,7 @@ fn main() -> ExitCode {
                 };
                 generate::netmod_cmd(&work_dir, &profile, resolvers, out_dir, &opts.to_opts())
             }
-            GenerateCmd::Dnstt {
+            GenerateCmd::Dmvpn {
                 profile,
                 resolvers,
                 out_dir,
@@ -491,7 +496,7 @@ fn main() -> ExitCode {
                     remark,
                     ..Default::default()
                 };
-                generate::dnstt_cmd(
+                generate::dmvpn_cmd(
                     &work_dir,
                     &profile,
                     resolvers,

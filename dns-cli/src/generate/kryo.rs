@@ -139,7 +139,7 @@ impl Default for KryoOutput {
     }
 }
 
-/// پارامترهای DNSTTBean v3 مطابق اپ NekoBox.
+/// DNSTTBean v3 payload for `sn://dnstt?` (DMVPN import format).
 #[derive(Debug, Clone)]
 pub struct DnsttBean {
     pub server_address: String,

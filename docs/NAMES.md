@@ -1,6 +1,6 @@
 # Names & labels (spelling)
 
-Operator/dev notes for casing in remarks and export folders. Not product branding.
+Operator/dev notes for casing in remarks and export folders.
 
 ## Remarks / `ps`
 
@@ -8,9 +8,15 @@ When a short person-name token appears in remarks, NetMod `ps`, or SlipNet displ
 
 `--profile` keys are ordinary nicknames (`demo`, `mytunnel`, …), not that person-name token.
 
-## DMVPN export
+## DMVPN
 
-`DMVPN/` is the client import bundle (same role as SlipNet/NetMod folders). Spelling in paths/docs: `DMVPN` (`DMVPN_LABEL`). Written by default.
+**DMVPN** is a first-class client export in this kit:
+
+- Wire format: `sn://dnstt?…`
+- Pipeline/generate folder: `configs/dmvpn/`
+- Dated import bundle (default): `DMVPN/<timestamp>_<remark>/`
+
+Spelling in paths/docs: `DMVPN` (`DMVPN_LABEL`). Opt out of the dated root bundle with `--no-dmvpn` (advanced). CLI: `generate dmvpn` (alias `generate dnstt`).
 
 ## Code
 

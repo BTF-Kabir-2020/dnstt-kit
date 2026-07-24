@@ -74,7 +74,7 @@ pub struct PipelineArgs {
     #[arg(long)]
     pub no_dmvpn: bool,
 
-    /// انواع generate: netmod,dnstt,slipnet یا all (پیش‌فرض)
+    /// Generate kinds: `netmod`, `dmvpn` (alias `dnstt`), `slipnet`, or `all`
     #[arg(long, default_value = "all")]
     pub generate_kinds: String,
 
@@ -307,12 +307,12 @@ pub fn run(work_dir: &Path, args: PipelineArgs) -> AppResult {
     if !args.skip_generate {
         let gen_dir = run_root.join("configs");
         fs::create_dir_all(gen_dir.join("netmod")).map_err(|e| e.to_string())?;
-        fs::create_dir_all(gen_dir.join("dnstt")).map_err(|e| e.to_string())?;
+        fs::create_dir_all(gen_dir.join("dmvpn")).map_err(|e| e.to_string())?;
         fs::create_dir_all(gen_dir.join("slipnet")).map_err(|e| e.to_string())?;
         let kinds = args.generate_kinds.to_ascii_lowercase();
         let want_all = kinds == "all";
         let want_netmod = want_all || kinds.contains("netmod");
-        let want_dnstt = want_all || kinds.contains("dnstt");
+        let want_dmvpn = want_all || kinds.contains("dmvpn") || kinds.contains("dnstt");
         let want_slip = want_all || kinds.contains("slipnet");
         let gen_opts = generate::GenOpts {
             limit: None,
@@ -331,12 +331,12 @@ pub fn run(work_dir: &Path, args: PipelineArgs) -> AppResult {
                 &gen_opts,
             )?;
         }
-        if want_dnstt {
-            generate::dnstt_cmd(
+        if want_dmvpn {
+            generate::dmvpn_cmd(
                 work_dir,
                 &args.profile,
                 resolvers_path.clone(),
-                Some(gen_dir.join("dnstt")),
+                Some(gen_dir.join("dmvpn")),
                 "both",
                 &gen_opts,
             )?;

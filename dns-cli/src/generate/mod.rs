@@ -1,4 +1,4 @@
-//! تولید لینک کلاینت: NetMod، NekoBox (sn://)، SlipNet (slipnet://)، پوشهٔ DMVPN.
+//! Client link generators: NetMod (`dns://`), DMVPN (`sn://dnstt?`), SlipNet (`slipnet://`).
 
 pub mod dnstt;
 pub mod kryo;
@@ -102,7 +102,8 @@ pub fn netmod_cmd(
     Ok(())
 }
 
-pub fn dnstt_cmd(
+/// Emit DMVPN import links (`sn://dnstt?…`) into `out_dir` and optionally the root `DMVPN/` bundle.
+pub fn dmvpn_cmd(
     work_dir: &Path,
     profile_name: &str,
     resolvers_path: PathBuf,
@@ -113,7 +114,7 @@ pub fn dnstt_cmd(
     let (profile, ips) = load_profile_ips(work_dir, profile_name, resolvers_path, opts)?;
     let run_dir = out_dir
         .map(|p| work(work_dir, p))
-        .unwrap_or_else(|| output::new_run_dir(work_dir, "dnstt"));
+        .unwrap_or_else(|| output::new_run_dir(work_dir, "dmvpn"));
     std::fs::create_dir_all(&run_dir).map_err(|e| e.to_string())?;
     let summary = dnstt::generate(&profile, &ips, &run_dir, mode)?;
     if !opts.no_dmvpn {
@@ -125,7 +126,8 @@ pub fn dnstt_cmd(
         );
     }
     println!(
-        "✅ DNSTT/NekoBox: all={} per_dns={} → {}",
+        "✅ {}: all={} per_dns={} → {}",
+        crate::names::DMVPN_LABEL,
         summary.all_link.is_some(),
         summary.per_dns.len(),
         run_dir.display()
@@ -160,7 +162,7 @@ pub fn all_cmd(
         .map(|p| work(work_dir, p))
         .unwrap_or_else(|| output::new_run_dir(work_dir, "generate_all"));
     std::fs::create_dir_all(base.join("netmod")).map_err(|e| e.to_string())?;
-    std::fs::create_dir_all(base.join("dnstt")).map_err(|e| e.to_string())?;
+    std::fs::create_dir_all(base.join("dmvpn")).map_err(|e| e.to_string())?;
     std::fs::create_dir_all(base.join("slipnet")).map_err(|e| e.to_string())?;
     netmod_cmd(
         work_dir,
@@ -169,11 +171,11 @@ pub fn all_cmd(
         Some(base.join("netmod")),
         opts,
     )?;
-    dnstt_cmd(
+    dmvpn_cmd(
         work_dir,
         profile_name,
         resolvers_path.clone(),
-        Some(base.join("dnstt")),
+        Some(base.join("dmvpn")),
         "both",
         opts,
     )?;
