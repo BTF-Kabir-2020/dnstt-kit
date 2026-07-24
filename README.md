@@ -6,11 +6,27 @@
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
 [![Release](https://img.shields.io/github/v/release/BTF-Kabir-2020/dnstt-kit)](https://github.com/BTF-Kabir-2020/dnstt-kit/releases)
 
-DNSTT toolkit: scan DNS resolvers, generate NetMod / NekoBox / SlipNet configs, optional offline slipnet, localhost web UI, backup helpers, Docker.
+**Operator toolkit for DNSTT** — find working UDP resolvers, then generate import links for NetMod / NekoBox / SlipNet. Optional offline slipnet binary, localhost web UI, Docker.
 
 Author: [BTF Kabir](https://github.com/BTF-Kabir-2020)
 
-**PRs welcome** — humans helping with code, docs, and tests are encouraged. See [CONTRIBUTING.md](CONTRIBUTING.md).
+This is **not** a phone VPN app. Apps like SlipNet / NetMod connect the tunnel; this kit helps you **scan + build configs** for your own server. Educational / personal / research use. See [LICENSE](LICENSE) (non-commercial).
+
+**PRs welcome** — [CONTRIBUTING.md](CONTRIBUTING.md).
+
+---
+
+## Why use this (vs only an app)
+
+| Need | App (SlipNet / NetMod / …) | dnstt-kit |
+|------|----------------------------|-----------|
+| Connect on phone | Yes | No |
+| Scan huge resolver lists (low RAM) | Limited / none | Yes (`--preset low` streams) |
+| Emit many `dns://` / `slipnet://` links | Manual | Batch generate |
+| Local web panel + SQLite history | — | Yes |
+| Embed scanner (`scanner_core` FFI) | — | Yes |
+
+Client matrix: [docs/CLIENTS.md](docs/CLIENTS.md)
 
 ---
 
@@ -63,14 +79,51 @@ cd dnstt-kit
 Web UI: http://127.0.0.1:8787  
 Docker: [docs/DOCKER.md](docs/DOCKER.md)
 
-Default sample profile is `demo` (`*.example.com` — edit `config/profiles.json`).
+Default sample profile is `demo` (`*.example.com` — edit `config/profiles.json`, gitignored).
+
+---
+
+## Test a `dns://` link you already have
+
+Your NetMod link is base64 JSON (`ps`, `addr`, `ns`, `pubkey`, optional `user`/`pass`). Decode locally (password masked):
+
+```powershell
+.\dns-cli.cmd decode "dns://...."
+.\dns-cli.cmd decode "dns://...." --save-profile mytunnel
+```
+
+Then:
+
+1. **Phone connectivity** — paste the same link into NetMod / SlipNet and Connect. If it fails, the resolver in `addr` may be blocked; keep the same `ns` + `pubkey` and try other resolvers.
+2. **Find resolvers that answer your tunnel domain**
+
+```powershell
+# small smoke test — a-domain = plain A probe; domain = your tunnel NS name
+.\dns-cli.cmd scan testdata\dns_sample.txt --preset low --domain YOUR.TUNNEL.DOMAIN --a-domain cloudflare.com --limit 20
+
+# large local list (put dumps under local/lists/ — gitignored)
+.\dns-cli.cmd scan local\lists\big.txt --preset low --domain YOUR.TUNNEL.DOMAIN --a-domain cloudflare.com --quiet
+```
+
+3. **Turn OK IPs into client links**
+
+```powershell
+.\dns-cli.cmd resolvers sync --from-txt out\txt\dns_ok_and_dnsonly_ips.txt
+.\dns-cli.cmd generate all --profile mytunnel --resolvers resolvers.json --limit 50 --no-dmvpn
+
+# MasterDnsVPN only needs the IP list (different protocol — see docs/CLIENTS.md)
+.\dns-cli.cmd resolvers export-txt --input resolvers.json --out client_resolvers.txt
+```
+
+Never commit real `profiles.json`, live URIs, or huge resolver dumps.
 
 ---
 
 ## What’s in the box
 
 - Scan with presets `low` / `normal` / `fast` — **`low` streams to disk** (line-by-line; RAM ≈ O(workers)). Huge lists stay memory-safe on small VPS; wall-clock is still network-bound. See [docs/MEMORY.md](docs/MEMORY.md)
-- Generate NetMod, DNSTT, SlipNet URI
+- Generate NetMod, DNSTT/NekoBox, SlipNet URI
+- Decode existing `dns://` / `slipnet://` into a local profile
 - Slipnet offline-first (`vendor/slipnet/…`; fetch is opt-in)
 - Web UI with local Tailwind Play CDN (`dns-cli/static/tailwindcss.js`)
 - `scanner_core` shared lib for embedding (desktop + Android `.so`)
@@ -97,6 +150,7 @@ Details: [SECURITY.md](SECURITY.md), [docs/SECURITY_WEB.md](docs/SECURITY_WEB.md
 | [CONTRIBUTING.md](CONTRIBUTING.md) | How to PR |
 | [docs/TUTORIAL.md](docs/TUTORIAL.md) | Windows walkthrough |
 | [docs/CLI.md](docs/CLI.md) | Commands |
+| [docs/CLIENTS.md](docs/CLIENTS.md) | NetMod / SlipNet / MasterDnsVPN / VayDNS |
 | [docs/WEB.md](docs/WEB.md) | Web panel |
 | [docs/FFI_PYTHON.md](docs/FFI_PYTHON.md) | DLL / SO / Android FFI |
 | [docs/ENV.md](docs/ENV.md) | `.env` |
@@ -108,6 +162,6 @@ Details: [SECURITY.md](SECURITY.md), [docs/SECURITY_WEB.md](docs/SECURITY_WEB.md
 
 ## Disclaimer
 
-AS IS — personal / educational / research. No warranty. Commercial use not allowed; see [LICENSE](LICENSE).
+AS IS — personal / educational / research. No warranty. You are responsible for lawful use on networks you are authorized to test. Commercial use not allowed; see [LICENSE](LICENSE).
 
 Copyright © 2026 BTF Kabir

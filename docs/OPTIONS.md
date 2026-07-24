@@ -7,6 +7,7 @@
 | دستور | کار |
 |--------|-----|
 | `doctor` | سلامت محیط (پروفایل / slipnet / sqlite / testdata) |
+| `decode <uri>` | decode لینک `dns://` / `slipnet://` (+ `--save-profile`) |
 | `verify <file>` | decode و اعتبارسنجی لینک‌های تولیدشده |
 | `profiles list\|show` | لیست / نمایش امن پروفایل |
 | `archive restore` | برگرداندن ZIP آرشیو به `runs/` |

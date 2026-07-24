@@ -289,6 +289,29 @@ pub fn exclude_cmd(
     Ok(())
 }
 
+/// خروجی یک IP در هر خط — مناسب SlipNet / MasterDnsVPN `client_resolvers.txt`.
+pub fn export_txt_cmd(work_dir: &Path, input: PathBuf, out: PathBuf) -> AppResult {
+    let input = work(work_dir, input);
+    let out = work(work_dir, out);
+    let ips = if input
+        .extension()
+        .and_then(|s| s.to_str())
+        .map(|s| s.eq_ignore_ascii_case("json"))
+        .unwrap_or(false)
+    {
+        load_resolvers_json(&input)?
+    } else {
+        normalize_list(load_txt_ips(&input)?)
+    };
+    write_ips_txt(&out, &ips)?;
+    println!(
+        "✅ export-txt → {} ({} IP) — drop into MasterDnsVPN as client_resolvers.txt",
+        out.display(),
+        ips.len()
+    );
+    Ok(())
+}
+
 pub fn load_resolvers_json(path: &Path) -> Result<Vec<String>, String> {
     let text = fs::read_to_string(path).map_err(|e| format!("read {path:?}: {e}"))?;
     let text = text.trim_start_matches('\u{feff}');

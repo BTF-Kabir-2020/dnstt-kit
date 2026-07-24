@@ -5,6 +5,7 @@ mod backup;
 mod clean;
 mod config;
 mod db;
+mod decode;
 mod doctor;
 mod env_file;
 mod generate;
@@ -106,6 +107,22 @@ enum Commands {
     Verify {
         path: PathBuf,
     },
+    /// decode dns:// / slipnet:// / sn://dnstt? (optionally save local profile)
+    Decode {
+        /// URI string (quote it in PowerShell)
+        uri: Option<String>,
+        /// read first non-empty line from file
+        #[arg(long)]
+        file: Option<PathBuf>,
+        /// write into config/profiles.json (gitignored)
+        #[arg(long)]
+        save_profile: Option<String>,
+        /// print ssh password in clear (default: masked)
+        #[arg(long)]
+        show_secrets: bool,
+        #[arg(long)]
+        json: bool,
+    },
     /// web panel (localhost)
     Serve {
         #[arg(long, default_value = "127.0.0.1:8787", env = "DNS_CLI_BIND")]
@@ -184,6 +201,13 @@ enum ResolversCmd {
         exclude: PathBuf,
         #[arg(long)]
         out: Option<PathBuf>,
+    },
+    /// export one-IP-per-line (SlipNet / MasterDnsVPN client_resolvers.txt)
+    ExportTxt {
+        #[arg(long, default_value = "resolvers.json")]
+        input: PathBuf,
+        #[arg(long, default_value = "client_resolvers.txt")]
+        out: PathBuf,
     },
 }
 
@@ -420,6 +444,9 @@ fn main() -> ExitCode {
                 exclude,
                 out,
             } => resolvers::exclude_cmd(&work_dir, input, exclude, out),
+            ResolversCmd::ExportTxt { input, out } => {
+                resolvers::export_txt_cmd(&work_dir, input, out)
+            }
         },
         Some(Commands::Generate { kind }) => match kind {
             GenerateCmd::Netmod {
@@ -598,6 +625,13 @@ fn main() -> ExitCode {
         },
         Some(Commands::Doctor { fetch_hint }) => doctor::run(&work_dir, fetch_hint),
         Some(Commands::Verify { path }) => verify::run(&work_dir, path),
+        Some(Commands::Decode {
+            uri,
+            file,
+            save_profile,
+            show_secrets,
+            json,
+        }) => decode::run(&work_dir, uri, file, save_profile, show_secrets, json),
         Some(Commands::Serve { bind }) => web::serve(&work_dir, &bind),
         Some(Commands::Status) => status_cmd(&work_dir),
         Some(Commands::Completion { shell }) => {

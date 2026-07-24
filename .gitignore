@@ -68,6 +68,10 @@ venv/
 /tools/
 node_modules/
 
+# --- local-only lists & notes (never publish dumps) ---
+/local/**
+!/local/README.md
+
 # --- accidental shared-lib drops in repo root ---
 /scanner_core.dll
 /libscanner_core.so

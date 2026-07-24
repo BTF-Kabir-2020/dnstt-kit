@@ -11,7 +11,7 @@ Or manually:
 
 ```powershell
 gh repo edit BTF-Kabir-2020/dnstt-kit `
-  --description "DNSTT kit (Rust): DNS scan, NetMod/NekoBox/SlipNet generate, offline slipnet, localhost web UI, Docker" `
+  --description "DNSTT kit (Rust): scan resolvers, NetMod/NekoBox/SlipNet generate, offline slipnet, localhost web UI" `
   --homepage ""
 
 # topics (no locale/region tags)
