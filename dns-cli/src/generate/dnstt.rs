@@ -92,19 +92,20 @@ pub fn generate(
     Ok(summary)
 }
 
-/// خروجی شبیه اسکریپت قدیمی: `DMVPN/<ts>_<remark>/`
+/// خروجی شبیه اسکریپت قدیمی: `{DMVPN_LABEL}/<ts>_<remark>/`
 pub fn write_dmvpn_bundle(
     work_dir: &Path,
     profile: &Profile,
     summary: &DnsttSummary,
 ) -> Result<std::path::PathBuf, String> {
+    use crate::names::{ensure_person_name, uppercase_dmvpn_label, DMVPN_LABEL};
     let ts = chrono::Local::now().format("%Y%m%d_%H%M%S");
-    let safe: String = profile
-        .remark
+    let remark = uppercase_dmvpn_label(&ensure_person_name(&profile.remark));
+    let safe: String = remark
         .chars()
         .map(|c| if c.is_alphanumeric() { c } else { '_' })
         .collect();
-    let folder = work_dir.join("DMVPN").join(format!("{ts}_{safe}"));
+    let folder = work_dir.join(DMVPN_LABEL).join(format!("{ts}_{safe}"));
     fs::create_dir_all(&folder).map_err(|e| e.to_string())?;
     if let Some(link) = &summary.all_link {
         fs::write(folder.join("dnstt_all_dns.txt"), format!("{link}\n"))
@@ -121,7 +122,7 @@ pub fn write_dmvpn_bundle(
         "per_dns": summary.per_dns.iter().map(|(k,v)| (k.clone(), json!({"ip": k, "link": v}))).collect::<BTreeMap<_,_>>(),
         "generated_at": chrono::Local::now().to_rfc3339(),
         "profile": profile.tunnel_domain,
-        "remark": profile.remark,
+        "remark": remark,
     });
     fs::write(
         folder.join("dnstt_links.json"),

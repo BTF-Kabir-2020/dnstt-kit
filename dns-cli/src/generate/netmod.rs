@@ -24,11 +24,12 @@ pub fn normalize_resolver(resolver: &str) -> String {
 }
 
 pub fn netmod_link(profile: &Profile, resolver: &str) -> String {
+    use crate::names::ensure_person_name;
     use base64::engine::general_purpose::STANDARD;
     use base64::Engine;
 
     let mut obj = json!({
-        "ps": profile.profile_name,
+        "ps": ensure_person_name(&profile.profile_name),
         "addr": normalize_resolver(resolver),
         "ns": profile.tunnel_domain,
         "pubkey": profile.pubkey,

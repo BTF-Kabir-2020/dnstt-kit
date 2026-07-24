@@ -1,12 +1,10 @@
 @echo off
 REM Launcher: run from dnstt-kit folder as:  dns-cli.cmd serve
-REM Prefer release, fall back to debug / dist.
+REM Pick the newest among release / debug / dist (avoids stale release hiding newer debug).
 setlocal
 set "ROOT=%~dp0"
 set "EXE="
-if exist "%ROOT%target\release\dns-cli.exe" set "EXE=%ROOT%target\release\dns-cli.exe"
-if not defined EXE if exist "%ROOT%dist\windows-x86_64\dns-cli.exe" set "EXE=%ROOT%dist\windows-x86_64\dns-cli.exe"
-if not defined EXE if exist "%ROOT%target\debug\dns-cli.exe" set "EXE=%ROOT%target\debug\dns-cli.exe"
+for /f "usebackq delims=" %%I in (`powershell -NoProfile -Command "$c=@('%ROOT%target\release\dns-cli.exe','%ROOT%target\debug\dns-cli.exe','%ROOT%dist\windows-x86_64\dns-cli.exe'); $c | Where-Object { Test-Path $_ } | Sort-Object { (Get-Item $_).LastWriteTimeUtc } -Descending | Select-Object -First 1"`) do set "EXE=%%I"
 if not defined EXE (
   echo [dns-cli.cmd] binary not found. Build first:
   echo   cd /d "%ROOT%"

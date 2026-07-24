@@ -67,6 +67,8 @@ python run.py serve --bind 127.0.0.1:8787
 .\dns-cli.cmd scan testdata\dns_sample.txt --preset low --limit 3 --quiet
 ```
 
+معنی `OK` / `DNS_ONLY` و قانون هدر: [SCAN.md](SCAN.md). مسیر کامل تانل: [WORKFLOW.md](WORKFLOW.md).
+
 ## ۴) تولید کانفیگ
 
 ```powershell

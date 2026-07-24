@@ -2,6 +2,8 @@
 
 > به‌روز: 2026-07-24
 
+معنی وضعیت اسکن / قانون هدر DNS / `--domain` و extras: **[SCAN.md](SCAN.md)** (سینک با `scanner2`: `NOERROR && (an>0 || ns>0)`؛ NODATA+SOA را FAIL نکن).
+
 ## دستورات جدید
 
 | دستور | کار |
@@ -17,7 +19,7 @@
 
 | محل | فلگ |
 |-----|------|
-| scan | `--limit` (خط‌به‌خط) `--stream` `--ok-only` `--enable-tcp` `--quiet` `--no-legacy-out` |
+| scan | `--limit` (خط‌به‌خط) `--stream` `--ok-only` `--enable-tcp` `--quiet` `--no-legacy-out` `--domain` `--a-domain` `--extra-domains` |
 | resolvers sync | `--limit` |
 | generate * | `--limit` `--no-dmvpn` `--ns` `--pubkey` `--remark` |
 | pipeline | `--limit` `-j` `--dry-run` `--no-dmvpn` `--generate-kinds` `--quiet` |
@@ -35,7 +37,12 @@
 
 ## فلگ‌های pipeline
 
-`--auto-archive` · `--auto-backup` · `--slipnet-probe`
+`--auto-archive` · `--auto-backup` · `--slipnet-probe` · `--skip-scan` · `--skip-slipnet` · `--no-dmvpn`
+
+- اگر `SLIPNET_CONFIG` خالی باشد، e2e از `--profile` یک `slipnet://` می‌سازد.
+- لیست IP برای e2e همیشه از `resolvers` همان run است (`e2e_candidate_ips.txt`)، نه فایل کهنهٔ ریشه.
+- با `--domain NS` و بدون `--extra-domains`، فقط همان NS برای TXT پروب می‌شود (false-OK از cloudflare/example نه).
+- جریان کامل: [WORKFLOW.md](WORKFLOW.md) · اسکن: [SCAN.md](SCAN.md)
 
 
 ## تست‌های مرتبط

@@ -50,10 +50,10 @@ fn default_a_domain() -> String {
     "cloudflare.com".into()
 }
 fn default_ps() -> String {
-    "dnstt".into()
+    crate::names::BTF_NAME.into()
 }
 fn default_remark() -> String {
-    "My DNSTT+SSH".into()
+    format!("{} DNSTT+SSH", crate::names::BTF_NAME)
 }
 fn default_ssh_user() -> String {
     "root".into()
@@ -75,14 +75,48 @@ impl ProfilesFile {
         if !path.is_file() {
             return Err(ConfigError::Missing(path.to_path_buf()));
         }
-        let text = fs::read_to_string(path)?;
-        Ok(serde_json::from_str(&text)?)
+        let mut text = fs::read_to_string(path)?;
+        // PowerShell Set-Content -Encoding utf8 writes a UTF-8 BOM; serde_json rejects it.
+        if text.starts_with('\u{feff}') {
+            text = text.trim_start_matches('\u{feff}').to_string();
+        }
+        let mut file: Self = serde_json::from_str(&text)?;
+        file.normalize_display_names();
+        Ok(file)
+    }
+
+    /// Keys: normalize wrong-case person-name letters only (no invented prefix).
+    /// remark / profile_name: always carry uppercase [`crate::names::BTF_NAME`].
+    pub fn normalize_display_names(&mut self) {
+        use crate::names::{ensure_person_name, normalize_display_text, uppercase_person_name};
+        let old = std::mem::take(&mut self.profiles);
+        let mut next = HashMap::with_capacity(old.len());
+        for (key, mut pr) in old {
+            // Person name first (may prefix), then DMVPN label casing.
+            pr.profile_name = normalize_display_text(&ensure_person_name(&pr.profile_name));
+            pr.remark = normalize_display_text(&ensure_person_name(&pr.remark));
+            let key = uppercase_person_name(&key);
+            next.insert(key, pr);
+        }
+        self.profiles = next;
     }
 
     pub fn get(&self, name: &str) -> Result<&Profile, ConfigError> {
-        self.profiles
+        let canon = crate::names::uppercase_person_name(name);
+        if let Some(p) = self
+            .profiles
             .get(name)
-            .ok_or_else(|| ConfigError::UnknownProfile(name.to_string()))
+            .or_else(|| self.profiles.get(canon.as_str()))
+        {
+            return Ok(p);
+        }
+        let want = canon.to_ascii_lowercase();
+        for (k, v) in &self.profiles {
+            if k.to_ascii_lowercase() == want {
+                return Ok(v);
+            }
+        }
+        Err(ConfigError::UnknownProfile(name.to_string()))
     }
 }
 

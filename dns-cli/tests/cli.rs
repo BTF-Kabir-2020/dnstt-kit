@@ -307,6 +307,58 @@ fn pipeline_dry_run() {
 }
 
 #[test]
+fn pipeline_skip_scan_skip_slipnet_generates() {
+    let root = root();
+    // Ensure a small OK list exists for skip-scan path.
+    let _ = bin()
+        .current_dir(&root)
+        .args([
+            "scan",
+            "testdata/dns_sample.txt",
+            "--preset",
+            "low",
+            "--limit",
+            "2",
+            "--quiet",
+            "--run-id",
+            "cli_pipe_seed",
+        ])
+        .output();
+    let out = bin()
+        .current_dir(&root)
+        .args([
+            "pipeline",
+            "run",
+            "--input",
+            "testdata/dns_sample.txt",
+            "--profile",
+            "demo",
+            "--skip-scan",
+            "--skip-slipnet",
+            "--no-dmvpn",
+            "--limit",
+            "2",
+            "--run-id",
+            "cli_pipe_gens",
+        ])
+        .output()
+        .unwrap();
+    let stdout = String::from_utf8_lossy(&out.stdout);
+    let stderr = String::from_utf8_lossy(&out.stderr);
+    assert!(out.status.success(), "stdout={stdout}\nstderr={stderr}");
+    assert!(
+        stdout.contains("skip-scan") || stdout.contains("pipeline"),
+        "{stdout}"
+    );
+    let netmod = root.join("runs/cli_pipe_gens/configs/netmod");
+    assert!(
+        netmod.is_dir(),
+        "expected netmod configs under {}",
+        netmod.display()
+    );
+}
+
+#[test]
 fn init_backup_info_clean() {
     let root = root();
     let out = bin().current_dir(&root).args(["init"]).output().unwrap();

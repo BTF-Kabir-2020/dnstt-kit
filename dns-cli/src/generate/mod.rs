@@ -39,8 +39,9 @@ fn apply_overrides(mut profile: config::Profile, opts: &GenOpts) -> config::Prof
         profile.pubkey = pk.clone();
     }
     if let Some(r) = &opts.remark {
+        let r = crate::names::ensure_person_name(r);
         profile.remark = r.clone();
-        profile.profile_name = r.clone();
+        profile.profile_name = r;
     }
     profile
 }
@@ -117,7 +118,11 @@ pub fn dnstt_cmd(
     let summary = dnstt::generate(&profile, &ips, &run_dir, mode)?;
     if !opts.no_dmvpn {
         let dmvpn = dnstt::write_dmvpn_bundle(work_dir, &profile, &summary)?;
-        println!("📁 DMVPN bundle: {}", dmvpn.display());
+        println!(
+            "📁 {} bundle: {}",
+            crate::names::DMVPN_LABEL,
+            dmvpn.display()
+        );
     }
     println!(
         "✅ DNSTT/NekoBox: all={} per_dns={} → {}",

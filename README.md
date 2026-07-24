@@ -10,6 +10,8 @@
 
 Author: [BTF Kabir](https://github.com/BTF-Kabir-2020)
 
+**BTF** is a person’s name (not a product brand) — uppercase only when it appears in remarks/`ps`. **DMVPN** is a tunnel client (like SlipNet); folder + spelling always `DMVPN`. See [docs/NAMES.md](docs/NAMES.md).
+
 This is **not** a phone VPN app. Apps like SlipNet / NetMod connect the tunnel; this kit helps you **scan + build configs** for your own server. Educational / personal / research use. See [LICENSE](LICENSE) (non-commercial).
 
 **PRs welcome** — [CONTRIBUTING.md](CONTRIBUTING.md).
@@ -93,26 +95,34 @@ Your NetMod link is base64 JSON (`ps`, `addr`, `ns`, `pubkey`, optional `user`/`
 .\dns-cli.cmd verify "dns://...."   # or a .txt of generated links
 ```
 
-Then:
-
-1. **Phone connectivity** — paste the same link into NetMod / SlipNet and Connect. If it fails, the resolver in `addr` may be blocked; keep the same `ns` + `pubkey` and try other resolvers.
-2. **Find resolvers that answer your tunnel domain**
+**Full path (recommended):** UDP scan → SlipNet e2e → NetMod / NekoBox / SlipNet configs — see [docs/WORKFLOW.md](docs/WORKFLOW.md).
 
 ```powershell
-# small smoke test — a-domain = plain A probe; domain = your tunnel NS name
-.\dns-cli.cmd scan testdata\dns_sample.txt --preset low --domain YOUR.TUNNEL.DOMAIN --a-domain cloudflare.com --limit 20
+# one-shot (scan + e2e + generate). Example list: dnsir.txt in kit root (gitignored)
+.\dns-cli.cmd pipeline run --input dnsir.txt --profile mytunnel --preset low --limit 50 --no-dmvpn
 
-# large local list (put dumps under local/lists/ — gitignored)
+# or: scan first, then continue without re-scanning
+.\dns-cli.cmd scan dnsir.txt --preset low --domain YOUR.TUNNEL.DOMAIN --a-domain cloudflare.com --limit 50
+.\dns-cli.cmd pipeline run --input dnsir.txt --profile mytunnel --skip-scan --no-dmvpn
+```
+
+`scan` alone does **not** run SlipNet e2e or emit client configs.
+
+Then:
+
+1. **Phone** — import links from `runs\pipeline_*\configs\netmod\` (or SlipNet / NekoBox folders) and Connect.
+2. **UDP-only probe** (no configs):
+
+```powershell
+.\dns-cli.cmd scan testdata\dns_sample.txt --preset low --domain YOUR.TUNNEL.DOMAIN --a-domain cloudflare.com --limit 20
 .\dns-cli.cmd scan local\lists\big.txt --preset low --domain YOUR.TUNNEL.DOMAIN --a-domain cloudflare.com --quiet
 ```
 
-3. **Turn OK IPs into client links**
+3. **Generate without e2e** (from an OK list):
 
 ```powershell
 .\dns-cli.cmd resolvers sync --from-txt out\txt\dns_ok_and_dnsonly_ips.txt
 .\dns-cli.cmd generate all --profile mytunnel --resolvers resolvers.json --limit 50 --no-dmvpn
-
-# MasterDnsVPN only needs the IP list (different protocol — see docs/CLIENTS.md)
 .\dns-cli.cmd resolvers export-txt --input resolvers.json --out client_resolvers.txt
 ```
 
@@ -151,7 +161,10 @@ Details: [SECURITY.md](SECURITY.md), [docs/SECURITY_WEB.md](docs/SECURITY_WEB.md
 | [CONTRIBUTING.md](CONTRIBUTING.md) | How to PR |
 | [docs/TUTORIAL.md](docs/TUTORIAL.md) | Windows walkthrough |
 | [docs/CLI.md](docs/CLI.md) | Commands |
+| [docs/WORKFLOW.md](docs/WORKFLOW.md) | scan → e2e → configs |
+| [docs/SCAN.md](docs/SCAN.md) | UDP success rule (scanner2-aligned) |
 | [docs/CLIENTS.md](docs/CLIENTS.md) | NetMod / SlipNet / MasterDnsVPN / VayDNS |
+| [docs/NAMES.md](docs/NAMES.md) | BTF (person) / DMVPN spelling |
 | [docs/WEB.md](docs/WEB.md) | Web panel |
 | [docs/FFI_PYTHON.md](docs/FFI_PYTHON.md) | DLL / SO / Android FFI |
 | [docs/ENV.md](docs/ENV.md) | `.env` |

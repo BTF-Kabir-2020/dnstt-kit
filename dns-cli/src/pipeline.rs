@@ -70,7 +70,7 @@ pub struct PipelineArgs {
     #[arg(long)]
     pub dry_run: bool,
 
-    /// خروجی DMVPN نساز
+    /// Skip writing the DMVPN client export bundle
     #[arg(long)]
     pub no_dmvpn: bool,
 
@@ -224,7 +224,7 @@ pub fn run(work_dir: &Path, args: PipelineArgs) -> AppResult {
             slipnet::DEFAULT_SLIPNET_TAG,
         ) {
             Ok(bin) => {
-                let cfg = args
+                let mut cfg = args
                     .slipnet_config
                     .clone()
                     .filter(|s| !s.trim().is_empty())
@@ -234,21 +234,30 @@ pub fn run(work_dir: &Path, args: PipelineArgs) -> AppResult {
                             .filter(|s| !s.trim().is_empty())
                     })
                     .unwrap_or_default();
+                // If no explicit SLIPNET_CONFIG, build slipnet:// from the pipeline profile
+                // so e2e works after `decode --save-profile` without hand-rolling a URI.
                 if cfg.trim().is_empty() {
-                    let msg = "slipnet پیدا شد ولی --slipnet-config / SLIPNET_CONFIG خالی است؛ e2e رد شد. (docs/ENV.md)";
-                    if args.require_slipnet {
-                        return Err(msg.into());
-                    }
-                    println!("⚠️  {msg}");
-                } else {
-                    let ips = work_dir.join("dns_ok_and_dnsonly_ips.txt");
-                    if !ips.is_file() {
-                        let list =
-                            resolvers::load_resolvers_json(&resolvers_path).unwrap_or_default();
-                        resolvers::write_ips_txt(&ips, &list)?;
-                    }
+                    let seed = generate::slipnet_uri::slipnet_resolver_token(
+                        list_first_resolver(&resolvers_path).as_str(),
+                    );
+                    cfg = generate::slipnet_uri::build_uri(profile, &seed, &profile.remark);
+                    println!(
+                        "ℹ️  SLIPNET_CONFIG خالی بود؛ از پروفایل `{}` ساخته شد (e2e).",
+                        args.profile
+                    );
+                }
+                {
+                    // Always feed SlipNet the resolvers just synced for THIS run.
+                    // Do not reuse a stale work_dir/dns_ok_and_dnsonly_ips.txt (old 3-IP lists).
+                    let list = resolvers::load_resolvers_json(&resolvers_path).unwrap_or_default();
+                    let ips = run_root.join("e2e_candidate_ips.txt");
+                    resolvers::write_ips_txt(&ips, &list)?;
+                    let _ = resolvers::write_ips_txt(
+                        &work_dir.join("dns_ok_and_dnsonly_ips.txt"),
+                        &list,
+                    );
                     let e2e_out = run_root.join("e2e_passed.txt");
-                    println!("🚀 slipnet e2e → {}", e2e_out.display());
+                    println!("🚀 slipnet e2e ({} IP) → {}", list.len(), e2e_out.display());
                     match run_slipnet_scan(&bin, &cfg, &ips, &e2e_out, work_dir) {
                         Ok(()) => {
                             e2e_ok = true;
@@ -397,6 +406,15 @@ pub fn run(work_dir: &Path, args: PipelineArgs) -> AppResult {
         }
     }
     Ok(())
+}
+
+/// Seed resolver token for building slipnet:// when SLIPNET_CONFIG is unset.
+/// SlipNet `--ips` overrides the actual list; this only fills URI field 4.
+fn list_first_resolver(resolvers_path: &Path) -> String {
+    resolvers::load_resolvers_json(resolvers_path)
+        .ok()
+        .and_then(|v| v.into_iter().next())
+        .unwrap_or_else(|| "1.1.1.1".into())
 }
 
 fn run_slipnet_scan(

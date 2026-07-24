@@ -12,6 +12,7 @@ mod generate;
 mod init_cmd;
 mod jobs;
 mod menu;
+mod names;
 mod output;
 mod pipeline;
 mod presets;
@@ -267,7 +268,7 @@ enum GenerateCmd {
         mode: String,
         #[arg(long)]
         limit: Option<usize>,
-        #[arg(long)]
+        #[arg(long, help = "Skip writing the DMVPN client export bundle")]
         no_dmvpn: bool,
         #[arg(long)]
         ns: Option<String>,
@@ -301,7 +302,7 @@ enum GenerateCmd {
         out_dir: Option<PathBuf>,
         #[arg(long)]
         limit: Option<usize>,
-        #[arg(long)]
+        #[arg(long, help = "Skip writing the DMVPN client export bundle")]
         no_dmvpn: bool,
         #[arg(long)]
         ns: Option<String>,
@@ -724,7 +725,15 @@ fn profiles_list(work_dir: &std::path::Path) -> Result<(), String> {
 fn profiles_show(work_dir: &std::path::Path, name: &str) -> Result<(), String> {
     let p = config::load_profiles(work_dir).map_err(|e| e.to_string())?;
     let pr = p.get(name).map_err(|e| e.to_string())?;
-    println!("name={name}");
+    let canonical = {
+        let want = names::uppercase_person_name(name).to_ascii_lowercase();
+        p.profiles
+            .keys()
+            .find(|k| k.to_ascii_lowercase() == want)
+            .cloned()
+            .unwrap_or_else(|| names::uppercase_person_name(name))
+    };
+    println!("name={canonical}");
     println!("tunnel_domain={}", pr.tunnel_domain);
     println!("a_domain={}", pr.a_domain);
     println!("pubkey_len={}", pr.pubkey.len());

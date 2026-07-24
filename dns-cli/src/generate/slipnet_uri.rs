@@ -52,7 +52,11 @@ pub fn build_payload(profile: &Profile, resolvers_field: &str, name: &str) -> St
 }
 
 pub fn build_uri(profile: &Profile, resolvers_field: &str, name: &str) -> String {
-    let raw = build_payload(profile, resolvers_field, name);
+    let raw = build_payload(
+        profile,
+        resolvers_field,
+        &crate::names::ensure_person_name(name),
+    );
     format!("slipnet://{}", STANDARD.encode(raw.as_bytes()))
 }
 

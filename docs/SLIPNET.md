@@ -24,16 +24,24 @@
 
 ## e2e
 
-نیاز به `--slipnet-config` یا متغیر/` .env ` با `SLIPNET_CONFIG` دارد.
+Needs vendor slipnet (`slipnet which`). Config resolution order:
+
+1. `--slipnet-config "slipnet://…"`
+2. `SLIPNET_CONFIG` / `.env`
+3. **Auto from pipeline `--profile`** (built with `generate` SlipNet URI helpers)
+
+IPs always come from the run’s synced `resolvers.json` (`e2e_candidate_ips.txt` under the pipeline run dir), not a leftover root `dns_ok_and_dnsonly_ips.txt`.
+
+Candidates often include **DNS_ONLY** rows (A ok, tunnel TXT timed out). That is fine — e2e decides tunnel usability. Do not tighten the scan header rule to “prove” the tunnel; see [SCAN.md](SCAN.md).
 
 ```powershell
-Copy-Item .env.example .env
-# SLIPNET_CONFIG را با لینک واقعی پر کن — راهنما: docs/ENV.md
-.\dns-cli.cmd pipeline run --input testdata\dns_sample.txt --profile demo --preset low
+Copy-Item .env.example .env   # optional; profile auto-config is enough after decode --save-profile
+.\dns-cli.cmd pipeline run --input testdata\dns_sample.txt --profile demo --preset low --limit 3 --no-dmvpn
 ```
 
-بدون کانفیگ واقعی: `.\dns-cli.cmd slipnet probe` یا `--slipnet-probe`.
+Without a live dial: `.\dns-cli.cmd slipnet probe` or `pipeline … --skip-slipnet` / `--slipnet-probe`.
 
+Full flow: [WORKFLOW.md](WORKFLOW.md).
 ## تولید URI
 
 ```powershell

@@ -308,6 +308,13 @@ fn udp_retry_delay_ms(attempt: u32, backoff_base_ms: u64) -> u64 {
     backoff_base_ms.saturating_mul(mult).min(5000)
 }
 
+/// Same success rule as Amir/scanner2: NOERROR and (answers **or** authority).
+/// Authority-only (NODATA+SOA) counts as a meaningful reply — intermittent /
+/// filtered paths often look like this; do not require Answer RRs for TXT.
+fn dns_udp_header_ok(rcode: u16, an: u16, ns: u16) -> bool {
+    rcode == 0 && (an > 0 || ns > 0)
+}
+
 async fn check_dns_udp(
     host: &str,
     port: u16,
@@ -426,7 +433,7 @@ async fn check_dns_udp(
                     ns
                 );
 
-                if rcode == 0 && (an > 0 || ns > 0) {
+                if dns_udp_header_ok(rcode, an, ns) {
                     log_println!(
                         "[DEBUG][DNS-OK] {}:{} | answers={} | authority={}",
                         host,
@@ -1099,6 +1106,16 @@ pub async fn run_scan_stream(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn test_dns_udp_header_ok_matches_scanner2() {
+        // scanner2 / docs/dns_query_hex.md: an>0 || ns>0 under NOERROR
+        assert!(dns_udp_header_ok(0, 0, 1)); // NODATA + SOA
+        assert!(dns_udp_header_ok(0, 1, 0));
+        assert!(dns_udp_header_ok(0, 2, 1));
+        assert!(!dns_udp_header_ok(3, 1, 0)); // NXDOMAIN
+        assert!(!dns_udp_header_ok(0, 0, 0));
+    }
 
     #[test]
     fn test_parse_target_empty_and_comment() {

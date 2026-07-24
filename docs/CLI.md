@@ -23,7 +23,7 @@ dns-cli info
 
 ## scan / resolvers / generate / pipeline
 
-Flags: [OPTIONS.md](OPTIONS.md) · Large lists / low RAM: [MEMORY.md](MEMORY.md) · Clients: [CLIENTS.md](CLIENTS.md)
+Flags: [OPTIONS.md](OPTIONS.md) · Scan semantics: [SCAN.md](SCAN.md) · Large lists / low RAM: [MEMORY.md](MEMORY.md) · Clients: [CLIENTS.md](CLIENTS.md) · End-to-end flow: [WORKFLOW.md](WORKFLOW.md)
 
 ```text
 dns-cli scan huge.txt --preset low --quiet
@@ -34,8 +34,12 @@ dns-cli verify runs\...\netmod_....txt
 dns-cli verify "dns://...."
 dns-cli resolvers export-txt --input resolvers.json --out client_resolvers.txt
 dns-cli resolvers exclude --input resolvers.json --exclude bad.txt
+dns-cli pipeline run --input dnsir.txt --profile zenadartabestan --preset low --limit 50 --no-dmvpn
+dns-cli pipeline run --input dnsir.txt --profile zenadartabestan --skip-scan --no-dmvpn
 dns-cli pipeline run ... --auto-archive --auto-backup
 ```
+
+`scan` = UDP probe only (OK / DNS_ONLY / FAIL — see [SCAN.md](SCAN.md)). `pipeline` = scan (optional) → SlipNet e2e → `configs/{netmod,dnstt,slipnet}/`. **BTF** = person’s name in remarks only (not a brand); **DMVPN** = client app + export folder: [NAMES.md](NAMES.md).
 
 ## slipnet / archive / backup / clean
 

@@ -7,6 +7,7 @@ This kit **scans resolvers** and **builds import links**. It is not a VPN app an
 | **NetMod** | Supported | `dns://` + base64(JSON) |
 | **NekoBox / sn** | Supported | `sn://dnstt?…` |
 | **SlipNet** | Supported | `slipnet://…` (+ optional local `slipnet` binary) |
+| **DMVPN** | Bundle folder | Export under `DMVPN/` (same class of phone/desktop tunnel client as SlipNet / NetMod). Spelling always `DMVPN`. Skip with `--no-dmvpn` |
 | **VayDNS** | Via SlipNet | Use SlipNet tunnel types `vaydns` / `vaydns_ssh` on the app/server side; this kit’s default URI is classic `dnstt` / `dnstt_ssh` |
 | **MasterDnsVPN** | Resolvers only | Different protocol (TOML + shared encrypt key). Export scan hits with `dns-cli resolvers export-txt` → `client_resolvers.txt`. Do **not** paste a DNSTT Noise pubkey into MasterDnsVPN as its encryption key |
 
@@ -19,6 +20,8 @@ dns-cli verify "dns://...."
 ```
 
 Password is masked unless `--show-secrets`. Profiles land in `config/profiles.json` (gitignored).
+
+Full operator flow (scan → SlipNet e2e → categorized configs): [WORKFLOW.md](WORKFLOW.md).
 
 ## Priority (maintainers)
 

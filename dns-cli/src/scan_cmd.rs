@@ -119,6 +119,15 @@ async fn run_async(work_dir: &Path, args: ScanArgs) -> AppResult {
         }
     }
 
+    // When --domain (tunnel NS) is set and --extra-domains is omitted, probe ONLY that
+    // domain for TXT. Otherwise cloudflare/example extras can mark OK while the tunnel
+    // TXT times out (soft false-positive for DNSTT).
+    let extras = match (&args.extra_domains, &args.domain) {
+        (Some(e), _) if !e.is_empty() => e.clone(),
+        (_, Some(d)) => vec![d.clone()],
+        _ => preset_extra(),
+    };
+
     let mut config = ScanConfig {
         input_file: input,
         timeout: args.timeout.unwrap_or(preset.timeout),
@@ -127,7 +136,7 @@ async fn run_async(work_dir: &Path, args: ScanArgs) -> AppResult {
             .domain
             .clone()
             .unwrap_or_else(|| "cloudflare.com".into()),
-        extra_domains: args.extra_domains.clone().unwrap_or(preset_extra()),
+        extra_domains: extras,
         enable_tcp: args.enable_tcp,
         include_dns_only: !args.ok_only,
         workers: args.workers.unwrap_or(preset.workers),
@@ -138,9 +147,8 @@ async fn run_async(work_dir: &Path, args: ScanArgs) -> AppResult {
         max_targets: args.limit,
     };
 
-    // اگر domain پروفایل داده نشده، extra پیش‌فرض نگه دار
     if config.extra_domains.is_empty() {
-        config.extra_domains = vec!["cloudflare.com".into(), "example.com".into()];
+        config.extra_domains = preset_extra();
     }
 
     let use_stream = args.stream || preset.stream;
@@ -177,6 +185,13 @@ async fn run_async(work_dir: &Path, args: ScanArgs) -> AppResult {
             out.ok_and_dnsonly_ips.len()
         );
         println!("   run: {}", run_dir.display());
+        println!("ℹ️  scan = UDP resolver probe only (no SlipNet e2e, no NetMod/NekoBox configs).");
+        println!(
+            "   Continue:  dns-cli pipeline run --input <list.txt> --profile <name> --skip-scan --no-dmvpn"
+        );
+        println!(
+            "   Or one-shot: dns-cli pipeline run --input <list.txt> --profile <name> --preset low --limit N --no-dmvpn"
+        );
     }
     let run_key = run_dir
         .parent()

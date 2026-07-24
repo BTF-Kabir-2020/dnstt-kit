@@ -31,21 +31,19 @@ pub struct DecodedLink {
 
 impl DecodedLink {
     pub fn to_profile(&self) -> Profile {
+        use crate::names::ensure_person_name;
+        let remark = if self.remark.is_empty() {
+            ensure_person_name("imported")
+        } else {
+            ensure_person_name(&self.remark)
+        };
         Profile {
             tunnel_domain: self.tunnel_domain.clone(),
             a_domain: "cloudflare.com".into(),
             extra_domains: vec![self.tunnel_domain.clone()],
             pubkey: self.pubkey.clone(),
-            profile_name: if self.remark.is_empty() {
-                "dnstt".into()
-            } else {
-                self.remark.clone()
-            },
-            remark: if self.remark.is_empty() {
-                "imported".into()
-            } else {
-                self.remark.clone()
-            },
+            profile_name: remark.clone(),
+            remark,
             ssh_user: if self.ssh_user.is_empty() {
                 "root".into()
             } else {
@@ -252,7 +250,10 @@ pub fn run(
         );
     } else {
         println!("kind:          {}", decoded.kind);
-        println!("remark:        {}", decoded.remark);
+        println!(
+            "remark:        {}",
+            crate::names::ensure_person_name(&decoded.remark)
+        );
         println!("nameserver:    {}", decoded.tunnel_domain);
         println!("public_key:    {}", decoded.pubkey);
         println!("dns_address:   {}", decoded.resolver);
@@ -278,23 +279,37 @@ pub fn run(
             decoded.tunnel_domain
         );
         println!();
-        println!("Then generate client links for OK resolvers:");
+        println!(
+            "Full path (UDP + SlipNet e2e + NetMod/NekoBox/SlipNet configs) — docs/WORKFLOW.md:"
+        );
+        if let Some(name) = save_profile.as_ref() {
+            println!(
+                "  dns-cli pipeline run --input dnsir.txt --profile {name} --preset low --limit 50 --no-dmvpn"
+            );
+            println!("  # continue after scan:  … --skip-scan --no-dmvpn");
+        } else {
+            println!("  dns-cli decode \"…\" --save-profile mytunnel");
+            println!(
+                "  dns-cli pipeline run --input dnsir.txt --profile mytunnel --preset low --limit 50 --no-dmvpn"
+            );
+        }
+        println!();
+        println!("Or generate only (no e2e):");
         println!("  dns-cli resolvers sync --from-txt <ok_list.txt>");
         if let Some(name) = save_profile.as_ref() {
             println!(
                 "  dns-cli generate all --profile {name} --resolvers resolvers.json --limit 50"
             );
         } else {
-            println!("  dns-cli decode \"…\" --save-profile mytunnel");
             println!(
                 "  dns-cli generate all --profile mytunnel --resolvers resolvers.json --limit 50"
             );
         }
         println!();
         println!(
-            "Phone test: import the same dns:// / slipnet:// in NetMod or SlipNet and Connect."
+            "Phone test: import links from runs/pipeline_*/configs/ in NetMod or SlipNet and Connect."
         );
-        println!("This kit does not dial the tunnel itself — it finds resolvers + builds configs.");
+        println!("pipeline SlipNet e2e dials the tunnel; scan alone does not.");
     }
 
     if let Some(name) = save_profile {
@@ -303,6 +318,7 @@ pub fn run(
                 "--save-profile needs dns:// or slipnet:// (sn://dnstt is verify-only here)".into(),
             );
         }
+        let name = crate::names::uppercase_person_name(&name);
         save_decoded_profile(work_dir, &name, &decoded)?;
         println!("✅ saved profile `{name}` → config/profiles.json (local / gitignored)");
     }

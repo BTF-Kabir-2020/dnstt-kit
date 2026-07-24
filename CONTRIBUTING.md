@@ -4,6 +4,8 @@
 
 Maintainer: [BTF Kabir](https://github.com/BTF-Kabir-2020) (`@BTF-Kabir-2020`)
 
+**BTF** is a **person’s name** (not a brand) — uppercase in remarks/`ps` when present; do **not** use it as `--profile` id. **DMVPN** is a tunnel client (like SlipNet); spelling always uppercase. See [docs/NAMES.md](docs/NAMES.md). Do not add lowercased spellings of those tokens as string literals in source or tests; use `BTF_NAME` / `DMVPN_LABEL` and `to_ascii_lowercase()` when a probe is required.
+
 ## Quick path
 
 1. Fork → branch off `main`
@@ -26,6 +28,7 @@ Good first areas: docs, safer web defaults, tests under `dns-cli/tests/`, FFI sa
 - Don’t commit `.env`, real `SLIPNET_CONFIG`, or live passwords
 - Web stays localhost-first — see `docs/SECURITY_WEB.md`
 - Prefer focused PRs over mega-diffs
+- Scanner UDP success stays **`NOERROR && (an>0 || ns>0)`** (Amir/`scanner2`). Do not “fix” NODATA+SOA into FAIL for TXT — tunnel truth is SlipNet e2e. See [docs/SCAN.md](docs/SCAN.md).
 
 ## Commits & Contributors (important)
 
