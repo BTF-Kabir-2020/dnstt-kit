@@ -147,8 +147,7 @@ fn decode_slipnet(b64: &str) -> Result<DecodedLink, String> {
         return Err(format!("slipnet fields={} need>=12", fields.len()));
     }
     let tunnel = fields[1].to_string();
-    let include_ssh = fields.get(14).map(|x| *x == "1").unwrap_or(false)
-        || tunnel.contains("ssh");
+    let include_ssh = fields.get(14).map(|x| *x == "1").unwrap_or(false) || tunnel.contains("ssh");
     Ok(DecodedLink {
         kind: "slipnet://",
         remark: fields[2].to_string(),
@@ -223,11 +222,7 @@ pub fn run(
     let uri = if let Some(u) = uri {
         u
     } else if let Some(p) = file {
-        let path = if p.is_absolute() {
-            p
-        } else {
-            work_dir.join(p)
-        };
+        let path = if p.is_absolute() { p } else { work_dir.join(p) };
         let text = fs::read_to_string(&path).map_err(|e| e.to_string())?;
         text.lines()
             .map(str::trim)
@@ -251,7 +246,10 @@ pub fn run(
             "include_ssh": decoded.include_ssh,
             "tunnel_type": decoded.tunnel_type,
         });
-        println!("{}", serde_json::to_string_pretty(&obj).map_err(|e| e.to_string())?);
+        println!(
+            "{}",
+            serde_json::to_string_pretty(&obj).map_err(|e| e.to_string())?
+        );
     } else {
         println!("kind:          {}", decoded.kind);
         println!("remark:        {}", decoded.remark);
@@ -284,7 +282,9 @@ pub fn run(
         println!("  dns-cli resolvers sync --from-txt <ok_list.txt>");
         if save_profile.is_none() {
             println!("  dns-cli decode \"…\" --save-profile mytunnel");
-            println!("  dns-cli generate all --profile mytunnel --resolvers resolvers.json --limit 50");
+            println!(
+                "  dns-cli generate all --profile mytunnel --resolvers resolvers.json --limit 50"
+            );
         } else {
             println!(
                 "  dns-cli generate all --profile {} --resolvers resolvers.json --limit 50",
@@ -292,7 +292,9 @@ pub fn run(
             );
         }
         println!();
-        println!("Phone test: import the same dns:// / slipnet:// in NetMod or SlipNet and Connect.");
+        println!(
+            "Phone test: import the same dns:// / slipnet:// in NetMod or SlipNet and Connect."
+        );
         println!("This kit does not dial the tunnel itself — it finds resolvers + builds configs.");
     }
 
