@@ -5,15 +5,28 @@ $Repo = "BTF-Kabir-2020/dnstt-kit"
 gh auth status | Out-Null
 
 gh repo edit $Repo `
-  --description "DNSTT kit (Rust): DNS scan, NetMod/NekoBox/SlipNet generate, offline slipnet, secure localhost web UI, Docker"
-# Clear homepage (empty) — gh --homepage "" rejects; use API
-gh api -X PATCH "repos/$Repo" -f homepage="" | Out-Null
+  --description "DNSTT toolkit (Rust): scan UDP resolvers, decode/generate NetMod NekoBox SlipNet configs, offline slipnet, localhost web UI, Docker" `
+  --homepage "https://github.com/BTF-Kabir-2020/dnstt-kit/wiki"
 
 # Full replace — no locale/region topics (persian/farsi/iran/…)
 $body = @{
   names = @(
-    "rust", "dnstt", "dns", "networking", "cli", "web-ui", "docker",
-    "offline-first", "sqlite", "security", "open-source", "tailwindcss"
+    "rust",
+    "dnstt",
+    "dns",
+    "dns-tunnel",
+    "networking",
+    "cli",
+    "scanner",
+    "web-ui",
+    "docker",
+    "offline-first",
+    "sqlite",
+    "security",
+    "ffi",
+    "android",
+    "open-source",
+    "tailwindcss"
   )
 } | ConvertTo-Json -Compress
 
