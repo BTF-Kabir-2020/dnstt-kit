@@ -280,15 +280,14 @@ pub fn run(
         println!();
         println!("Then generate client links for OK resolvers:");
         println!("  dns-cli resolvers sync --from-txt <ok_list.txt>");
-        if save_profile.is_none() {
+        if let Some(name) = save_profile.as_ref() {
+            println!(
+                "  dns-cli generate all --profile {name} --resolvers resolvers.json --limit 50"
+            );
+        } else {
             println!("  dns-cli decode \"…\" --save-profile mytunnel");
             println!(
                 "  dns-cli generate all --profile mytunnel --resolvers resolvers.json --limit 50"
-            );
-        } else {
-            println!(
-                "  dns-cli generate all --profile {} --resolvers resolvers.json --limit 50",
-                save_profile.as_ref().unwrap()
             );
         }
         println!();
@@ -371,5 +370,22 @@ mod tests {
         let d = decode_uri(&link).unwrap();
         assert_eq!(d.tunnel_domain, "demo.example.com");
         assert!(d.include_ssh);
+    }
+
+    #[test]
+    fn decode_rejects_unknown_scheme() {
+        assert!(decode_uri("ftp://nope").is_err());
+        assert!(decode_uri("http://example.com").is_err());
+    }
+
+    #[test]
+    fn decode_rejects_bad_netmod_base64() {
+        assert!(decode_uri("dns://!!!!").is_err());
+        assert!(decode_uri("dns://YQ==").is_err()); // valid b64 but not json object with ns
+    }
+
+    #[test]
+    fn decode_rejects_short_slipnet() {
+        assert!(decode_uri("slipnet://abc").is_err());
     }
 }

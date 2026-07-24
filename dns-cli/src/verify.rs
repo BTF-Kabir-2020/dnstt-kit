@@ -10,14 +10,37 @@ use std::path::{Path, PathBuf};
 
 pub type AppResult = Result<(), String>;
 
-pub fn run(work_dir: &Path, path: PathBuf) -> AppResult {
-    let path = if path.is_absolute() {
-        path
-    } else {
-        work_dir.join(path)
+pub fn run(work_dir: &Path, target: &str) -> AppResult {
+    let target = target.trim();
+    // Single URI (Windows PathBuf used to mangle `dns://…` into a fake path).
+    if looks_like_uri(target) {
+        return match verify_one(target) {
+            Ok(kind) => {
+                println!("✅ {kind}");
+                println!("verify: checked=1 bad=0");
+                Ok(())
+            }
+            Err(e) => {
+                println!("❌ {e}");
+                println!("verify: checked=1 bad=1");
+                Err(e)
+            }
+        };
+    }
+
+    let path = {
+        let p = PathBuf::from(target);
+        if p.is_absolute() {
+            p
+        } else {
+            work_dir.join(p)
+        }
     };
     if !path.is_file() {
-        return Err(format!("file not found: {}", path.display()));
+        return Err(format!(
+            "file not found: {} (or pass a dns:// | slipnet:// | sn://dnstt? URI)",
+            path.display()
+        ));
     }
     let text = fs::read_to_string(&path).map_err(|e| e.to_string())?;
     let mut checked = 0usize;
@@ -44,6 +67,10 @@ pub fn run(work_dir: &Path, path: PathBuf) -> AppResult {
     } else {
         Ok(())
     }
+}
+
+fn looks_like_uri(s: &str) -> bool {
+    s.starts_with("dns://") || s.starts_with("slipnet://") || s.starts_with("sn://dnstt?")
 }
 
 fn verify_one(line: &str) -> Result<&'static str, String> {
@@ -149,5 +176,14 @@ mod tests {
         assert!(verify_one(&nm).is_ok());
         let sl = slipnet_uri::build_uri(&p, "1.1.1.1:53:0", "r");
         assert!(verify_one(&sl).is_ok());
+    }
+
+    #[test]
+    fn looks_like_uri_schemes() {
+        assert!(looks_like_uri("dns://abc"));
+        assert!(looks_like_uri("slipnet://abc"));
+        assert!(looks_like_uri("sn://dnstt?abc"));
+        assert!(!looks_like_uri("links.txt"));
+        assert!(!looks_like_uri("out/netmod.txt"));
     }
 }

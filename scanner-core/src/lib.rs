@@ -321,11 +321,19 @@ async fn check_dns_udp(
         Ok(a) => a,
         Err(e) => return (false, -1.0, e.to_string()),
     };
+    if query.len() < 2 {
+        return (false, -1.0, "query_too_short".into());
+    }
+    let expect_txid = u16::from_be_bytes([query[0], query[1]]);
 
+    // connect() so only peer `addr` can deliver datagrams (drops injected/wrong-source replies).
     let socket = match UdpSocket::bind("0.0.0.0:0").await {
         Ok(s) => s,
         Err(e) => return (false, -1.0, e.to_string()),
     };
+    if let Err(e) = socket.connect(addr).await {
+        return (false, -1.0, format!("connect_failed: {e}"));
+    }
 
     log_println!(
         "[DEBUG][UDP-SEND] {}:{} | query_len={} | query_hex={:02X?}",
@@ -363,12 +371,12 @@ async fn check_dns_udp(
         );
         let start = Instant::now();
 
-        if socket.send_to(query, addr).await.is_err() {
+        if socket.send(query).await.is_err() {
             return (false, -1.0, "send_failed".into());
         }
 
-        match timeout(dur, socket.recv_from(&mut buf)).await {
-            Ok(Ok((n, _))) => {
+        match timeout(dur, socket.recv(&mut buf)).await {
+            Ok(Ok(n)) => {
                 let latency = start.elapsed().as_secs_f64() * 1000.0;
                 let resp = &buf[..n];
 
@@ -387,10 +395,25 @@ async fn check_dns_udp(
 
                 if n < 12 {
                     log_println!("[DEBUG][DNS-PARSE] short packet");
-                    return (false, latency, "short_packet".into());
+                    continue;
+                }
+
+                let got_txid = u16::from_be_bytes([resp[0], resp[1]]);
+                if got_txid != expect_txid {
+                    log_println!(
+                        "[DEBUG][DNS-TXID-MISMATCH] expect=0x{:04X} got=0x{:04X} — ignore",
+                        expect_txid,
+                        got_txid
+                    );
+                    continue;
                 }
 
                 let flags = u16::from_be_bytes([resp[2], resp[3]]);
+                let qr = (flags >> 15) & 1;
+                if qr != 1 {
+                    log_println!("[DEBUG][DNS-PARSE] not a response (QR=0) — ignore");
+                    continue;
+                }
                 let rcode = flags & 0x000F;
                 let an = u16::from_be_bytes([resp[6], resp[7]]);
                 let ns = u16::from_be_bytes([resp[8], resp[9]]);

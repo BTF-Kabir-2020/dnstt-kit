@@ -225,6 +225,26 @@ fn doctor_and_profiles_and_verify() {
         "{}",
         String::from_utf8_lossy(&ver.stderr)
     );
+
+    // Inline URI must work (not only file path) — Windows used to treat dns:// as a path.
+    let uri = std::fs::read_to_string(&lf)
+        .unwrap()
+        .lines()
+        .map(str::trim)
+        .find(|l| l.starts_with("dns://"))
+        .expect("dns uri line")
+        .to_string();
+    let ver_uri = bin()
+        .current_dir(&root)
+        .args(["verify", &uri])
+        .output()
+        .unwrap();
+    assert!(
+        ver_uri.status.success(),
+        "verify URI stderr={}",
+        String::from_utf8_lossy(&ver_uri.stderr)
+    );
+    assert!(String::from_utf8_lossy(&ver_uri.stdout).contains("netmod"));
 }
 
 #[test]

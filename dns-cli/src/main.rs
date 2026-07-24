@@ -104,8 +104,10 @@ enum Commands {
         #[arg(long)]
         fetch_hint: bool,
     },
+    /// verify link file OR a single dns:// | slipnet:// | sn://dnstt? URI
     Verify {
-        path: PathBuf,
+        /// path to a text file of links, or one URI string (quote on Windows)
+        target: String,
     },
     /// decode dns:// / slipnet:// / sn://dnstt? (optionally save local profile)
     Decode {
@@ -624,7 +626,7 @@ fn main() -> ExitCode {
             ProfilesCmd::Show { name } => profiles_show(&work_dir, &name),
         },
         Some(Commands::Doctor { fetch_hint }) => doctor::run(&work_dir, fetch_hint),
-        Some(Commands::Verify { path }) => verify::run(&work_dir, path),
+        Some(Commands::Verify { target }) => verify::run(&work_dir, &target),
         Some(Commands::Decode {
             uri,
             file,
