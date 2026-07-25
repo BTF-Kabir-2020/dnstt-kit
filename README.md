@@ -99,6 +99,9 @@ Your NetMod link is base64 JSON (`ps`, `addr`, `ns`, `pubkey`, optional `user`/`
 # one-shot (scan + e2e + generate). Example list: dnsir.txt in kit root (gitignored)
 .\dns-cli.cmd pipeline run --input dnsir.txt --profile mytunnel --preset low --limit 50
 
+# sanitize input list first (dedup + sort) — replaces file in-place
+.\dns-cli.cmd sanitize dnsir.txt --inplace
+
 # or: scan first, then continue without re-scanning
 .\dns-cli.cmd scan dnsir.txt --preset low --domain YOUR.TUNNEL.DOMAIN --a-domain cloudflare.com --limit 50
 .\dns-cli.cmd pipeline run --input dnsir.txt --profile mytunnel --skip-scan
@@ -131,6 +134,7 @@ Never commit real `profiles.json`, live URIs, or huge resolver dumps.
 ## What’s in the box
 
 - Scan with presets `low` / `normal` / `fast` — **`low` streams to disk** (line-by-line; RAM ≈ O(workers)). Huge lists stay memory-safe on small VPS; wall-clock is still network-bound. See [docs/MEMORY.md](docs/MEMORY.md)
+- **Sanitize** input IP lists — dedup, sort, remove blanks/comments/bad format in one shot (`sanitize --inplace`)
 - Generate NetMod (`dns://`), DMVPN (`sn://dnstt?`), SlipNet URI
 - Decode existing `dns://` / `slipnet://` into a local profile
 - Slipnet offline-first (`vendor/slipnet/…`; fetch is opt-in)
@@ -167,6 +171,7 @@ Details: [SECURITY.md](SECURITY.md), [docs/SECURITY_WEB.md](docs/SECURITY_WEB.md
 | [docs/ENV.md](docs/ENV.md) | `.env` |
 | [docs/DOCKER.md](docs/DOCKER.md) | Docker |
 | [docs/MEMORY.md](docs/MEMORY.md) | Low RAM / large scan lists |
+| [docs/SANITIZE.md](docs/SANITIZE.md) | Input list cleanup (dedup, sort, exclude) |
 | [LICENSE](LICENSE) | Non-commercial |
 
 ---

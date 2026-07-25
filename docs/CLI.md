@@ -21,11 +21,15 @@ dns-cli info
 
 `.env`: copy from `.env.example` — [ENV.md](ENV.md)
 
-## scan / resolvers / generate / pipeline
+## scan / sanitize / resolvers / generate / pipeline
 
 Flags: [OPTIONS.md](OPTIONS.md) · Scan semantics: [SCAN.md](SCAN.md) · Large lists / low RAM: [MEMORY.md](MEMORY.md) · Clients: [CLIENTS.md](CLIENTS.md) · End-to-end flow: [WORKFLOW.md](WORKFLOW.md)
 
 ```text
+dns-cli sanitize dnsir.txt --inplace              # dedup + sort + clean (replaces file)
+dns-cli sanitize dnsir.txt --dedup-by-ip          # dedup by IP only (ignore port)
+dns-cli sanitize dnsir.txt --exclude bad.txt      # remove IPs from exclude list
+dns-cli sanitize dnsir.txt --dry-run              # stats only, no file written
 dns-cli scan huge.txt --preset low --quiet
 dns-cli scan huge.txt --preset low --limit 50000 --quiet
 dns-cli decode "dns://...."

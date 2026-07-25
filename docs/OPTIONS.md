@@ -8,6 +8,7 @@
 
 | دستور | کار |
 |--------|-----|
+| `sanitize` | پاکسازی فایل ورودی IP: حذف تکراری، مرتب‌سازی عددی، حذف خطوط خالی/کامنت/فرمت نامعتبر |
 | `doctor` | سلامت محیط (پروفایل / slipnet / sqlite / testdata) |
 | `decode <uri>` | decode لینک `dns://` / `slipnet://` / `sn://dnstt?` (+ `--save-profile` برای dns/slipnet) |
 | `verify <file\|uri>` | اعتبارسنجی فایل لینک‌ها **یا** یک URI اینلاین (`dns://` / `slipnet://` / `sn://dnstt?`) — در ویندوز URI را کوت کنید |

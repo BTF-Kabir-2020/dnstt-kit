@@ -17,6 +17,7 @@ mod output;
 mod pipeline;
 mod presets;
 mod resolvers;
+mod sanitize;
 mod scan_cmd;
 mod slipnet;
 mod verify;
@@ -105,6 +106,8 @@ enum Commands {
         #[arg(long)]
         fetch_hint: bool,
     },
+    /// sanitize / clean an input IP list (dedup, sort, remove blanks)
+    Sanitize(sanitize::SanitizeArgs),
     /// verify link file OR a single dns:// | slipnet:// | sn://dnstt? URI
     Verify {
         /// path to a text file of links, or one URI string (quote on Windows)
@@ -553,6 +556,7 @@ fn main() -> ExitCode {
             SlipnetCmd::Fetch { tag, force } => slipnet::fetch_cmd(&work_dir, tag, force),
             SlipnetCmd::Probe { path } => slipnet::probe_cmd(&work_dir, path),
         },
+        Some(Commands::Sanitize(args)) => sanitize::run(&work_dir, args),
         Some(Commands::Archive { action }) => match action {
             ArchiveCmd::Pack {
                 run_id,

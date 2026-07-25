@@ -30,8 +30,9 @@ pub fn run(work_dir: &Path) -> AppResult {
         println!("  7) serve      — web panel  http://127.0.0.1:8787");
         println!("  8) init       — folder + profiles.json");
         println!("  9) info       — build / path info");
+        println!("  s) sanitize   — clean/dedup/sort input IP list (dnsir.txt)");
         println!("  0) exit");
-        print!("Select (0-9): ");
+        print!("Select (0-9, s): ");
         let _ = io::stdout().flush();
         let mut line = String::new();
         io::stdin()
@@ -88,6 +89,29 @@ pub fn run(work_dir: &Path) -> AppResult {
                     std::env::consts::OS,
                     std::env::consts::ARCH
                 );
+            }
+            "s" => {
+                print!("Input file [dnsir.txt]: ");
+                let _ = io::stdout().flush();
+                let mut path = String::new();
+                io::stdin()
+                    .read_line(&mut path)
+                    .map_err(|e| e.to_string())?;
+                let path = path.trim();
+                let path = if path.is_empty() {
+                    PathBuf::from("dnsir.txt")
+                } else {
+                    PathBuf::from(path)
+                };
+                let args = crate::sanitize::SanitizeArgs {
+                    input: path,
+                    output: None,
+                    dedup_by_ip: false,
+                    exclude: None,
+                    dry_run: false,
+                    inplace: true,
+                };
+                report("sanitize", crate::sanitize::run(work_dir, args));
             }
             _ => println!("invalid option — 0..9"),
         }
