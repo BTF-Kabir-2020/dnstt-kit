@@ -119,7 +119,11 @@ pub fn run(work_dir: &Path, args: SanitizeArgs) -> AppResult {
             skipped_bad += 1;
             continue;
         }
-        let ip: [u8; 4] = match octets.iter().map(|o| o.parse::<u8>()).collect::<Result<Vec<_>, _>>() {
+        let ip: [u8; 4] = match octets
+            .iter()
+            .map(|o| o.parse::<u8>())
+            .collect::<Result<Vec<_>, _>>()
+        {
             Ok(v) => [v[0], v[1], v[2], v[3]],
             Err(_) => {
                 skipped_bad += 1;

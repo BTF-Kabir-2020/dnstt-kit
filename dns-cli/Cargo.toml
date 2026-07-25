@@ -1,6 +1,6 @@
 [package]
 name = "dns-cli"
-version = "0.1.4"
+version = "0.1.5"
 edition = "2021"
 description = "Unified DNSTT kit: scan resolvers, optional slipnet e2e, generate NetMod/DMVPN/SlipNet links"
 authors = ["BTF Kabir <101173470+BTF-Kabir-2020@users.noreply.github.com>"]
