@@ -49,11 +49,13 @@ After a successful pipeline:
 
 ```text
 runs/pipeline_<id>/configs/
-  netmod/    dns://         → NetMod
-  dmvpn/     sn://dnstt?…   → DMVPN
-  slipnet/   slipnet://     → SlipNet
+  netmod/    dns://          → NetMod (+ per/*.nm files)
+  dmvpn/     sn://dnstt?…    → DMVPN (+ per/*.sn files)
+             per/*.sn        one `sn://dnstt?…` link per resolver
+  slipnet/   slipnet://      → SlipNet (+ per/*.slipnet files)
+             per/*.slipnet   one `slipnet://…` URI per resolver
 
-Also (by default): DMVPN/<timestamp>_<batch>_<remark>/  → same sn:// links as a dated import bundle
+Also (by default): DMVPN/<timestamp>_<batch>_<remark>/  → same sn:// links + per/*.sn as a dated import bundle
 ```
 
 Display names share one **batch tag** per generate (e.g. `Remark-K7HM-01`) — see [CLIENTS.md](CLIENTS.md).

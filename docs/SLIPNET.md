@@ -48,4 +48,4 @@ Full flow: [WORKFLOW.md](WORKFLOW.md).
 .\dns-cli.cmd generate slipnet-uri --profile demo --resolvers resolvers.json
 ```
 
-خروجی: `slipnet_all.txt` / `slipnet_per.txt` / `slipnet_links.json`
+خروجی: `slipnet_all.txt` / `slipnet_per.txt` / `slipnet_links.json` + `per/*.slipnet` (یک فایل مجزا برای هر DNS)

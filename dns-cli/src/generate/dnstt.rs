@@ -77,6 +77,8 @@ pub fn generate(
 
     if want_each {
         let mut lines = Vec::new();
+        let per_dir = out_dir.join("per");
+        fs::create_dir_all(&per_dir).map_err(|e| e.to_string())?;
         for (i, dns) in resolvers.iter().enumerate() {
             let dns_norm = normalize_dns_resolvers(std::slice::from_ref(dns));
             let name = batch_item_label(base_name, batch, i + 1);
@@ -84,7 +86,10 @@ pub fn generate(
             let raw = serialize_dnstt_bean_v3(&bean);
             let link = build_sn_dnstt_link(&raw);
             lines.push(link.clone());
-            summary.per_dns.insert(dns.clone(), link);
+            summary.per_dns.insert(dns.clone(), link.clone());
+            // Individual .sn config file per resolver
+            let sn_path = per_dir.join(format!("{batch}_{:03}.sn", i + 1));
+            fs::write(&sn_path, format!("{link}\n")).map_err(|e| e.to_string())?;
         }
         fs::write(out_dir.join("dnstt_per_dns.txt"), lines.join("\n") + "\n")
             .map_err(|e| e.to_string())?;
@@ -127,9 +132,14 @@ pub fn write_dmvpn_bundle(
         fs::write(folder.join("dnstt_all_dns.txt"), format!("{link}\n"))
             .map_err(|e| e.to_string())?;
     }
+    let per_dir = folder.join("per");
+    fs::create_dir_all(&per_dir).map_err(|e| e.to_string())?;
     let mut lines = Vec::new();
-    for link in summary.per_dns.values() {
+    for (i, (_, link)) in summary.per_dns.iter().enumerate() {
         lines.push(link.clone());
+        // Individual .sn config file in the bundle too
+        let sn_path = per_dir.join(format!("{}_{:03}.sn", summary.batch, i + 1));
+        fs::write(&sn_path, format!("{link}\n")).map_err(|e| e.to_string())?;
     }
     fs::write(folder.join("dnstt_per_dns.txt"), lines.join("\n") + "\n")
         .map_err(|e| e.to_string())?;

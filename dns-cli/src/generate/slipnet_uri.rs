@@ -99,6 +99,8 @@ pub fn generate(
     fs::write(out_dir.join("slipnet_all.txt"), format!("{all_uri}\n"))
         .map_err(|e| e.to_string())?;
 
+    let per_dir = out_dir.join("per");
+    fs::create_dir_all(&per_dir).map_err(|e| e.to_string())?;
     let mut per = Vec::new();
     let mut map = serde_json::Map::new();
     for (i, r) in resolvers.iter().enumerate() {
@@ -107,6 +109,9 @@ pub fn generate(
         let uri = build_uri(profile, &tok, &name);
         per.push(uri.clone());
         map.insert(r.clone(), json!({"resolver": r, "name": name, "link": uri}));
+        // Individual .slipnet config file per resolver
+        let f = per_dir.join(format!("{batch}_{:03}.slipnet", i + 1));
+        fs::write(&f, format!("{uri}\n")).map_err(|e| e.to_string())?;
     }
     fs::write(out_dir.join("slipnet_per.txt"), per.join("\n") + "\n").map_err(|e| e.to_string())?;
     let info = json!({

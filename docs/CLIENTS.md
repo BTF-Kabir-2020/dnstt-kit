@@ -5,8 +5,8 @@ This kit **scans resolvers** and **builds import links**. It is not a VPN app.
 | Client | Status in dnstt-kit | What we emit |
 |--------|---------------------|--------------|
 | **NetMod** | Supported | `dns://` + base64(JSON) |
-| **DMVPN** | Supported | `sn://dnstt?…` under `configs/dmvpn/` and root `DMVPN/<ts>_<batch>_…/` |
-| **SlipNet** | Supported | `slipnet://…` (+ optional local `slipnet` binary) |
+| **DMVPN** | Supported | `sn://dnstt?…` under `configs/dmvpn/` + `per/*.sn` (one file per DNS) + root `DMVPN/<ts>_<batch>_…/` |
+| **SlipNet** | Supported | `slipnet://…` under `configs/slipnet/` + `per/*.slipnet` (one file per DNS) |
 | **MasterDnsVPN** | Resolvers only | Different protocol. Export scan hits with `dns-cli resolvers export-txt` → `client_resolvers.txt`. Do **not** paste a DNSTT Noise pubkey as its encryption key |
 
 ## Batch labels (same-day runs)

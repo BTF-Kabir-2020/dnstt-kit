@@ -23,6 +23,7 @@ resolvers.json
 dns_ok_and_dnsonly_ips.txt
 e2e_passed.txt
 dnsir.txt
+dnsir.clean.txt
 
 # --- local verify scratch (session dumps; not fixtures) ---
 testdata/_verify_edge/
@@ -85,3 +86,6 @@ node_modules/
 
 # --- local agent helpers (never publish) ---
 scripts/_*
+
+# --- wiki (separate repo, never commit into main) ---
+dnstt-kit.wiki.git/
