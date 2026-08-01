@@ -46,7 +46,7 @@ jobs:
             lib_asset: dnstt-kit-scanner_core-macos-arm64.dylib
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
       - name: Build release (CLI + lib)
@@ -68,7 +68,7 @@ jobs:
           "dist/${{ matrix.asset }}" info || true
           ls -la dist/
       - name: Upload artifact
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v7
         with:
           name: ${{ matrix.asset }}
           path: |
@@ -80,7 +80,7 @@ jobs:
   release-linux-aarch64:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
       - uses: dtolnay/rust-toolchain@stable
         with:
           targets: aarch64-unknown-linux-gnu
@@ -100,7 +100,7 @@ jobs:
           cp target/aarch64-unknown-linux-gnu/release/libscanner_core.so \
             dist/dnstt-kit-scanner_core-linux-arm64.so
           cp LICENSE README.md dist/
-      - uses: actions/upload-artifact@v5
+      - uses: actions/upload-artifact@v7
         with:
           name: dnstt-kit-linux-arm64
           path: |
@@ -113,7 +113,7 @@ jobs:
   release-android:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
       - uses: dtolnay/rust-toolchain@stable
         with:
           targets: aarch64-linux-android,armv7-linux-androideabi
@@ -123,7 +123,7 @@ jobs:
         with:
           ndk-version: r27c
           link-to-sdk: false
-      - uses: taiki-e/install-action@v2
+      - uses: taiki-e/install-action@v2.85.4
         with:
           tool: cargo-ndk
       - name: Build Android shared libs
@@ -140,7 +140,7 @@ jobs:
             dist/dnstt-kit-scanner_core-android-armeabi-v7a.so
           cp LICENSE README.md dist/
           ls -la dist/
-      - uses: actions/upload-artifact@v5
+      - uses: actions/upload-artifact@v7
         with:
           name: dnstt-kit-android-libs
           path: |
@@ -154,8 +154,8 @@ jobs:
     runs-on: ubuntu-latest
     if: startsWith(github.ref, 'refs/tags/v')
     steps:
-      - uses: actions/checkout@v5
-      - uses: actions/download-artifact@v5
+      - uses: actions/checkout@v7
+      - uses: actions/download-artifact@v8
         with:
           path: artifacts
       - name: Assemble release folder + checksums
@@ -168,7 +168,7 @@ jobs:
           sha256sum dnstt-kit-* | tee SHA256SUMS.txt
           ls -la
       - name: GitHub Release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           name: dnstt-kit ${{ github.ref_name }}
           draft: false
