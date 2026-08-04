@@ -151,32 +151,36 @@ fn run_flat_dns(work_dir: &Path) -> AppResult {
         let pass = prompt_line("pass", "")?;
         crate::generate::flat_dns_cmd(
             work_dir,
-            PathBuf::from(input),
-            PathBuf::from(out),
-            None,
-            Some(ps),
-            Some(ns),
-            Some(pubkey),
-            Some(user),
-            Some(pass),
-            53,
-            true,
-            None,
+            crate::generate::FlatDnsCmd {
+                input: PathBuf::from(input),
+                out: PathBuf::from(out),
+                profile_name: None,
+                ps: Some(ps),
+                ns: Some(ns),
+                pubkey: Some(pubkey),
+                user: Some(user),
+                pass: Some(pass),
+                port: 53,
+                dedup: true,
+                limit: None,
+            },
         )
     } else {
         crate::generate::flat_dns_cmd(
             work_dir,
-            PathBuf::from(input),
-            PathBuf::from(out),
-            Some(profile.as_str()),
-            Some(ps),
-            None,
-            None,
-            None,
-            None,
-            53,
-            true,
-            None,
+            crate::generate::FlatDnsCmd {
+                input: PathBuf::from(input),
+                out: PathBuf::from(out),
+                profile_name: Some(profile),
+                ps: Some(ps),
+                ns: None,
+                pubkey: None,
+                user: None,
+                pass: None,
+                port: 53,
+                dedup: true,
+                limit: None,
+            },
         )
     }
 }

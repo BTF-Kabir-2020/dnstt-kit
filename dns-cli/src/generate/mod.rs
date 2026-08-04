@@ -170,59 +170,72 @@ pub fn slipnet_cmd(
 
 /// Flat `dns.txt` from an IP list (Python `generate_dns.py` style).
 /// Prefer `--profile` **or** pass `--ns` + `--pubkey` (+ optional user/pass/ps).
-pub fn flat_dns_cmd(
-    work_dir: &Path,
-    input: PathBuf,
-    out: PathBuf,
-    profile_name: Option<&str>,
-    ps: Option<String>,
-    ns: Option<String>,
-    pubkey: Option<String>,
-    user: Option<String>,
-    pass: Option<String>,
-    port: u16,
-    dedup: bool,
-    limit: Option<usize>,
-) -> AppResult {
-    let input = work(work_dir, input);
-    let out = work(work_dir, out);
+#[derive(Debug, Clone)]
+pub struct FlatDnsCmd {
+    pub input: PathBuf,
+    pub out: PathBuf,
+    pub profile_name: Option<String>,
+    pub ps: Option<String>,
+    pub ns: Option<String>,
+    pub pubkey: Option<String>,
+    pub user: Option<String>,
+    pub pass: Option<String>,
+    pub port: u16,
+    pub dedup: bool,
+    pub limit: Option<usize>,
+}
+
+pub fn flat_dns_cmd(work_dir: &Path, cmd: FlatDnsCmd) -> AppResult {
+    let input = work(work_dir, cmd.input);
+    let out = work(work_dir, cmd.out);
+    let profile_name = cmd.profile_name.as_deref();
 
     let n = if let Some(name) = profile_name {
         let profiles = config::load_profiles(work_dir).map_err(|e| e.to_string())?;
         let profile = profiles.get(name).map_err(|e| e.to_string())?;
         let mut pr = profile.clone();
-        if let Some(ns) = ns {
+        if let Some(ns) = cmd.ns {
             pr.tunnel_domain = ns;
         }
-        if let Some(pk) = pubkey {
+        if let Some(pk) = cmd.pubkey {
             pr.pubkey = pk;
         }
-        if let Some(u) = user {
+        if let Some(u) = cmd.user {
             pr.ssh_user = u;
             pr.include_ssh = true;
         }
-        if let Some(p) = pass {
+        if let Some(p) = cmd.pass {
             pr.ssh_pass = p;
             pr.include_ssh = true;
         }
-        flat_dns::from_profile(&pr, &input, &out, ps.as_deref(), port, dedup, limit)?
+        flat_dns::from_profile(
+            &pr,
+            &input,
+            &out,
+            cmd.ps.as_deref(),
+            cmd.port,
+            cmd.dedup,
+            cmd.limit,
+        )?
     } else {
-        let ns = ns.ok_or_else(|| {
+        let ns = cmd.ns.ok_or_else(|| {
             "need --profile NAME  or  --ns + --pubkey (and usually --ps/--user/--pass)".to_string()
         })?;
-        let pubkey = pubkey.ok_or_else(|| "--pubkey is required without --profile".to_string())?;
-        let ps = ps.unwrap_or_else(|| "dnstt".into());
+        let pubkey = cmd
+            .pubkey
+            .ok_or_else(|| "--pubkey is required without --profile".to_string())?;
+        let ps = cmd.ps.unwrap_or_else(|| "dnstt".into());
         flat_dns::run(flat_dns::FlatDnsArgs {
             input: input.clone(),
             out: out.clone(),
             ps,
             ns,
             pubkey,
-            user: user.unwrap_or_default(),
-            pass: pass.unwrap_or_default(),
-            port,
-            dedup,
-            limit,
+            user: cmd.user.unwrap_or_default(),
+            pass: cmd.pass.unwrap_or_default(),
+            port: cmd.port,
+            dedup: cmd.dedup,
+            limit: cmd.limit,
         })?
     };
 
