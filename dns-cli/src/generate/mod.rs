@@ -205,15 +205,7 @@ pub fn flat_dns_cmd(
             pr.ssh_pass = p;
             pr.include_ssh = true;
         }
-        flat_dns::from_profile(
-            &pr,
-            &input,
-            &out,
-            ps.as_deref(),
-            port,
-            dedup,
-            limit,
-        )?
+        flat_dns::from_profile(&pr, &input, &out, ps.as_deref(), port, dedup, limit)?
     } else {
         let ns = ns.ok_or_else(|| {
             "need --profile NAME  or  --ns + --pubkey (and usually --ps/--user/--pass)".to_string()

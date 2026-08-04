@@ -56,15 +56,13 @@ pub fn from_profile(
     dedup: bool,
     limit: Option<usize>,
 ) -> Result<usize, String> {
-    let ps = ps
-        .map(|s| s.to_string())
-        .unwrap_or_else(|| {
-            if !profile.remark.trim().is_empty() {
-                profile.remark.clone()
-            } else {
-                profile.profile_name.clone()
-            }
-        });
+    let ps = ps.map(|s| s.to_string()).unwrap_or_else(|| {
+        if !profile.remark.trim().is_empty() {
+            profile.remark.clone()
+        } else {
+            profile.profile_name.clone()
+        }
+    });
     let user = if profile.include_ssh {
         profile.ssh_user.clone()
     } else {

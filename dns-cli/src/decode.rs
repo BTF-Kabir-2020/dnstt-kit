@@ -300,16 +300,12 @@ pub fn run(
             println!(
                 "  dns-cli generate all --profile {name} --resolvers resolvers.json --limit 50"
             );
-            println!(
-                "  dns-cli generate dns -i ips.txt --profile {name} --ps NAME -o dns.txt"
-            );
+            println!("  dns-cli generate dns -i ips.txt --profile {name} --ps NAME -o dns.txt");
         } else {
             println!(
                 "  dns-cli generate all --profile mytunnel --resolvers resolvers.json --limit 50"
             );
-            println!(
-                "  dns-cli generate dns -i ips.txt --profile mytunnel --ps NAME -o dns.txt"
-            );
+            println!("  dns-cli generate dns -i ips.txt --profile mytunnel --ps NAME -o dns.txt");
         }
         println!();
         println!(
