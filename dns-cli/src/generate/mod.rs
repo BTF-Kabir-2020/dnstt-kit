@@ -1,6 +1,7 @@
 //! Client link generators: NetMod (`dns://`), DMVPN (`sn://dnstt?`), SlipNet (`slipnet://`).
 
 pub mod dnstt;
+pub mod flat_dns;
 pub mod kryo;
 pub mod netmod;
 pub mod slipnet_uri;
@@ -163,6 +164,90 @@ pub fn slipnet_cmd(
     println!(
         "✅ SlipNet URI: {n} (batch {batch}) → {}",
         run_dir.display()
+    );
+    Ok(())
+}
+
+/// Flat `dns.txt` from an IP list (Python `generate_dns.py` style).
+/// Prefer `--profile` **or** pass `--ns` + `--pubkey` (+ optional user/pass/ps).
+pub fn flat_dns_cmd(
+    work_dir: &Path,
+    input: PathBuf,
+    out: PathBuf,
+    profile_name: Option<&str>,
+    ps: Option<String>,
+    ns: Option<String>,
+    pubkey: Option<String>,
+    user: Option<String>,
+    pass: Option<String>,
+    port: u16,
+    dedup: bool,
+    limit: Option<usize>,
+) -> AppResult {
+    let input = work(work_dir, input);
+    let out = work(work_dir, out);
+
+    let n = if let Some(name) = profile_name {
+        let profiles = config::load_profiles(work_dir).map_err(|e| e.to_string())?;
+        let profile = profiles.get(name).map_err(|e| e.to_string())?;
+        let mut pr = profile.clone();
+        if let Some(ns) = ns {
+            pr.tunnel_domain = ns;
+        }
+        if let Some(pk) = pubkey {
+            pr.pubkey = pk;
+        }
+        if let Some(u) = user {
+            pr.ssh_user = u;
+            pr.include_ssh = true;
+        }
+        if let Some(p) = pass {
+            pr.ssh_pass = p;
+            pr.include_ssh = true;
+        }
+        flat_dns::from_profile(
+            &pr,
+            &input,
+            &out,
+            ps.as_deref(),
+            port,
+            dedup,
+            limit,
+        )?
+    } else {
+        let ns = ns.ok_or_else(|| {
+            "need --profile NAME  or  --ns + --pubkey (and usually --ps/--user/--pass)".to_string()
+        })?;
+        let pubkey = pubkey.ok_or_else(|| "--pubkey is required without --profile".to_string())?;
+        let ps = ps.unwrap_or_else(|| "dnstt".into());
+        flat_dns::run(flat_dns::FlatDnsArgs {
+            input: input.clone(),
+            out: out.clone(),
+            ps,
+            ns,
+            pubkey,
+            user: user.unwrap_or_default(),
+            pass: pass.unwrap_or_default(),
+            port,
+            dedup,
+            limit,
+        })?
+    };
+
+    println!("✅ flat dns: {n} configs → {}", out.display());
+    let _ = db::insert_run(
+        work_dir,
+        &format!(
+            "gen_flat_dns_{}",
+            chrono::Local::now().format("%Y%m%d_%H%M%S")
+        ),
+        "generate_dns",
+        profile_name,
+        None,
+        "ok",
+        false,
+        n as i64,
+        &out.display().to_string(),
     );
     Ok(())
 }

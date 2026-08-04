@@ -20,6 +20,7 @@ DMVPN/
 
 # --- generated / local lists ---
 resolvers.json
+dns.txt
 dns_ok_and_dnsonly_ips.txt
 e2e_passed.txt
 dnsir.txt

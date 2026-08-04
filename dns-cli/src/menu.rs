@@ -31,8 +31,9 @@ pub fn run(work_dir: &Path) -> AppResult {
         println!("  8) init       — folder + profiles.json");
         println!("  9) info       — build / path info");
         println!("  s) sanitize   — clean/dedup/sort input IP list (dnsir.txt)");
+        println!("  d) generate dns — IP list → dns.txt (flat / Python-style)");
         println!("  0) exit");
-        print!("Select (0-9, s): ");
+        print!("Select (0-9, s, d): ");
         let _ = io::stdout().flush();
         let mut line = String::new();
         io::stdin()
@@ -113,8 +114,70 @@ pub fn run(work_dir: &Path) -> AppResult {
                 };
                 report("sanitize", crate::sanitize::run(work_dir, args));
             }
-            _ => println!("invalid option — 0..9"),
+            "d" => report("generate dns", run_flat_dns(work_dir)),
+            _ => println!("invalid option — 0..9 / s / d"),
         }
+    }
+}
+
+fn prompt_line(label: &str, default: &str) -> Result<String, String> {
+    if default.is_empty() {
+        print!("{label}: ");
+    } else {
+        print!("{label} [{default}]: ");
+    }
+    let _ = io::stdout().flush();
+    let mut line = String::new();
+    io::stdin()
+        .read_line(&mut line)
+        .map_err(|e| e.to_string())?;
+    let t = line.trim();
+    if t.is_empty() {
+        Ok(default.to_string())
+    } else {
+        Ok(t.to_string())
+    }
+}
+
+fn run_flat_dns(work_dir: &Path) -> AppResult {
+    let input = prompt_line("IP list file", "testdata/iran_dns_ips.txt")?;
+    let out = prompt_line("Output file", "dns.txt")?;
+    let profile = prompt_line("Profile (empty = use --ns/--pubkey flags)", "")?;
+    let ps = prompt_line("ps (display name)", "NEWJJ")?;
+    if profile.is_empty() {
+        let ns = prompt_line("ns (tunnel domain)", "")?;
+        let pubkey = prompt_line("pubkey (hex)", "")?;
+        let user = prompt_line("user", "root")?;
+        let pass = prompt_line("pass", "")?;
+        crate::generate::flat_dns_cmd(
+            work_dir,
+            PathBuf::from(input),
+            PathBuf::from(out),
+            None,
+            Some(ps),
+            Some(ns),
+            Some(pubkey),
+            Some(user),
+            Some(pass),
+            53,
+            true,
+            None,
+        )
+    } else {
+        crate::generate::flat_dns_cmd(
+            work_dir,
+            PathBuf::from(input),
+            PathBuf::from(out),
+            Some(profile.as_str()),
+            Some(ps),
+            None,
+            None,
+            None,
+            None,
+            53,
+            true,
+            None,
+        )
     }
 }
 

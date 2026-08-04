@@ -1,6 +1,6 @@
 # گزینه‌ها و قابلیت‌های اضافه‌شده (changelog عملیاتی)
 
-> به‌روز: 2026-07-24
+> به‌روز: 2026-08-04
 
 معنی وضعیت اسکن / قانون هدر DNS / `--domain` و extras: **[SCAN.md](SCAN.md)** (سینک با `scanner2`: `NOERROR && (an>0 || ns>0)`؛ NODATA+SOA را FAIL نکن).
 
@@ -22,7 +22,8 @@
 |-----|------|
 | scan | `--limit` (خط‌به‌خط) `--stream` `--ok-only` `--enable-tcp` `--quiet` `--no-legacy-out` `--domain` `--a-domain` `--extra-domains` |
 | resolvers sync | `--limit` |
-| generate * | `--limit` `--no-dmvpn` `--ns` `--pubkey` `--remark` |
+| `generate *` | `--limit` `--no-dmvpn` `--ns` `--pubkey` `--remark` |
+| `generate dns` | `-i` IP list → `-o dns.txt`; `--profile` **or** `--ns`/`--pubkey`/`--ps`/`--user`/`--pass`; `--keep-dupes` |
 | pipeline | `--limit` `-j` `--dry-run` `--no-dmvpn` `--generate-kinds` `--quiet` |
 
 ## دستورات جدید (نسخه کامل)

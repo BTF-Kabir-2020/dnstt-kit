@@ -1,4 +1,4 @@
-# dnstt-kit (Rust) — v0.1.6
+# dnstt-kit (Rust) — v0.1.7
 
 [![CI](https://github.com/BTF-Kabir-2020/dnstt-kit/actions/workflows/ci.yml/badge.svg)](https://github.com/BTF-Kabir-2020/dnstt-kit/actions/workflows/ci.yml)
 [![License](https://img.shields.io/badge/license-Non--Commercial-blue)](LICENSE)
@@ -139,6 +139,7 @@ Never commit real `profiles.json`, live URIs, or huge resolver dumps.
 - Scan with presets `low` / `normal` / `fast` — **`low` streams to disk** (line-by-line; RAM ≈ O(workers)). Huge lists stay memory-safe on small VPS; wall-clock is still network-bound. See [docs/MEMORY.md](docs/MEMORY.md)
 - **Sanitize** input IP lists — dedup, sort, remove blanks/comments/bad format in one shot (`sanitize --inplace`)
 - Generate NetMod (`dns://`), DMVPN (`sn://dnstt?`), SlipNet URI
+- **Flat `generate dns`** — IP list → single `dns.txt` (same `ps` every line; Python-script style)
 - Decode existing `dns://` / `slipnet://` into a local profile
 - Slipnet offline-first (`vendor/slipnet/…`; fetch is opt-in)
 - Web UI with local Tailwind Play CDN (`dns-cli/static/tailwindcss.js`)

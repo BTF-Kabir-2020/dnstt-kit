@@ -179,6 +179,10 @@ jobs:
             Official builds (GitHub Actions). Author: **BTF Kabir** (`@BTF-Kabir-2020`).
             **PRs welcome** — see `CONTRIBUTING.md`.
 
+            ### Highlights
+            - `generate dns` — IP list → flat `dns.txt` (`dns://` links, same `ps` every line; menu key `d`)
+            - CLI / menu without web, or `serve` for the localhost panel
+
             ### CLI
             | File | Platform |
             |------|----------|

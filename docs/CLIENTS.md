@@ -9,9 +9,20 @@ This kit **scans resolvers** and **builds import links**. It is not a VPN app.
 | **SlipNet** | Supported | `slipnet://…` under `configs/slipnet/` + `per/*.slipnet` (one file per DNS) |
 | **MasterDnsVPN** | Resolvers only | Different protocol. Export scan hits with `dns-cli resolvers export-txt` → `client_resolvers.txt`. Do **not** paste a DNSTT Noise pubkey as its encryption key |
 
+## Flat `dns.txt` (Python-style)
+
+One IP list → one file of `dns://` lines with the **same** `ps` on every row (no batch tag):
+
+```text
+dns-cli generate dns -i ips.txt --profile mytunnel --ps NEWJJ -o dns.txt
+dns-cli generate dns -i ips.txt --ns tunnel.example.com --pubkey HEX --ps NAME --user root --pass SECRET -o dns.txt
+```
+
+Menu: key **`d`**. Web panel → Options → **flat dns.txt** sample. Dedup is on by default (`--keep-dupes` to keep repeats).
+
 ## Batch labels (same-day runs)
 
-Each `generate` / `pipeline` run mints a short **batch tag** (e.g. `K7HM`). Display names across NetMod / DMVPN / SlipNet share it:
+Each `generate netmod|dmvpn|slipnet|all` / `pipeline` run mints a short **batch tag** (e.g. `K7HM`). Display names across NetMod / DMVPN / SlipNet share it:
 
 ```text
 BTFJang891-K7HM-01

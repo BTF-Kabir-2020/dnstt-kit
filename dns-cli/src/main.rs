@@ -320,6 +320,37 @@ enum GenerateCmd {
         #[arg(long)]
         remark: Option<String>,
     },
+    /// Flat dns.txt from IP list (same as generate_dns.py) — one `ps` for every line
+    Dns {
+        /// Input IP list (one IP or IP:port per line)
+        #[arg(long, short = 'i')]
+        input: PathBuf,
+        /// Output file (default: dns.txt in work dir)
+        #[arg(long, short = 'o', default_value = "dns.txt")]
+        out: PathBuf,
+        /// Local profile name (fills ns/pubkey/user/pass); optional if you pass flags
+        #[arg(long)]
+        profile: Option<String>,
+        /// NetMod display name (`ps`) — kept as-is (no BTF rewrite)
+        #[arg(long)]
+        ps: Option<String>,
+        /// Tunnel NS domain
+        #[arg(long)]
+        ns: Option<String>,
+        #[arg(long)]
+        pubkey: Option<String>,
+        #[arg(long)]
+        user: Option<String>,
+        #[arg(long)]
+        r#pass: Option<String>,
+        #[arg(long, default_value_t = 53)]
+        port: u16,
+        /// Keep duplicate IPs (default: dedup, order preserved)
+        #[arg(long)]
+        keep_dupes: bool,
+        #[arg(long)]
+        limit: Option<usize>,
+    },
 }
 
 #[derive(Subcommand, Debug)]
@@ -547,6 +578,32 @@ fn main() -> ExitCode {
                 };
                 generate::all_cmd(&work_dir, &profile, resolvers, out_dir, &opts.to_opts())
             }
+            GenerateCmd::Dns {
+                input,
+                out,
+                profile,
+                ps,
+                ns,
+                pubkey,
+                user,
+                r#pass,
+                port,
+                keep_dupes,
+                limit,
+            } => generate::flat_dns_cmd(
+                &work_dir,
+                input,
+                out,
+                profile.as_deref(),
+                ps,
+                ns,
+                pubkey,
+                user,
+                r#pass,
+                port,
+                !keep_dupes,
+                limit,
+            ),
         },
         Some(Commands::Pipeline { action }) => match action {
             PipelineCmd::Run(args) => pipeline::run(&work_dir, args),
@@ -783,6 +840,7 @@ fn starter_flow(work_dir: &Path) -> Result<(), String> {
     println!("  dns-cli menu");
     println!("  dns-cli serve");
     println!("  dns-cli doctor");
+    println!("  dns-cli generate dns -i ips.txt --profile mytunnel --ps NAME -o dns.txt");
     println!("  dns-cli --help");
     println!();
 

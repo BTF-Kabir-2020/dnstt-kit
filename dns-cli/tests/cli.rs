@@ -50,6 +50,39 @@ fn generate_netmod_sample() {
 }
 
 #[test]
+fn generate_flat_dns_sample() {
+    let root = root();
+    let tmp = tempfile::tempdir().unwrap();
+    let out_file = tmp.path().join("dns.txt");
+    let out = bin()
+        .current_dir(&root)
+        .args([
+            "generate",
+            "dns",
+            "-i",
+            "testdata/iran_dns_ips.txt",
+            "--profile",
+            "demo",
+            "--ps",
+            "NEWJJ",
+            "-o",
+        ])
+        .arg(&out_file)
+        .output()
+        .unwrap();
+    assert!(
+        out.status.success(),
+        "stderr={} stdout={}",
+        String::from_utf8_lossy(&out.stderr),
+        String::from_utf8_lossy(&out.stdout)
+    );
+    let text = std::fs::read_to_string(&out_file).unwrap();
+    let lines: Vec<_> = text.lines().filter(|l| !l.is_empty()).collect();
+    assert!(!lines.is_empty());
+    assert!(lines[0].starts_with("dns://"));
+}
+
+#[test]
 fn generate_dmvpn_sample() {
     let root = root();
     let tmp = tempfile::tempdir().unwrap();

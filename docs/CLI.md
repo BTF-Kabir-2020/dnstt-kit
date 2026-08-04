@@ -39,6 +39,8 @@ dns-cli verify "dns://...."
 dns-cli resolvers export-txt --input resolvers.json --out client_resolvers.txt
 dns-cli resolvers exclude --input resolvers.json --exclude bad.txt
 dns-cli generate dmvpn --profile mytunnel --resolvers resolvers.json --limit 50
+dns-cli generate dns -i ips.txt --ns wide.example.com --pubkey HEX --ps NAME --user root --pass SECRET -o dns.txt
+dns-cli generate dns -i ips.txt --profile mytunnel --ps NEWJJ -o dns.txt
 dns-cli pipeline run --input dnsir.txt --profile mytunnel --preset low --limit 50
 dns-cli pipeline run --input dnsir.txt --profile mytunnel --skip-scan
 dns-cli pipeline run ... --auto-archive --auto-backup

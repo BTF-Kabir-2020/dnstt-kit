@@ -72,7 +72,12 @@ python run.py serve --bind 127.0.0.1:8787
 ## ۴) تولید کانفیگ
 
 ```powershell
+# کامل (NetMod + DMVPN + SlipNet) از resolvers.json
 .\dns-cli.cmd generate all --profile demo --resolvers testdata\resolvers_sample.json --limit 10
+
+# ساده مثل generate_dns.py — یک dns.txt با همان ps برای همه
+.\dns-cli.cmd generate dns -i testdata\iran_dns_ips.txt --profile demo --ps NEWJJ -o dns.txt
+# یا از menu کلید d
 ```
 
 ## ۵) پنل وب / منوی ترمینال

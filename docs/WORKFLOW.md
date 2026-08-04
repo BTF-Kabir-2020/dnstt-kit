@@ -24,6 +24,7 @@ dnsir.txt (IP:port list)
 | 2a. Probe only | `scan dnsir.txt --preset low --domain NS --limit 50` | `runs/scan_*/`, `out/txt/…` (OK + DNS_ONLY by default) |
 | 2b. Full | `pipeline run --input dnsir.txt --profile mytunnel --preset low --limit 50` | scan + e2e + configs (+ `DMVPN/` bundle) |
 | 2c. Continue | `pipeline run --input dnsir.txt --profile mytunnel --skip-scan` | e2e + configs from last working list (`out/json` / prior scan) |
+| 2d. Flat only | `generate dns -i ips.txt --profile mytunnel --ps NAME -o dns.txt` | single `dns.txt` (same `ps` every line; no scan/e2e) |
 
 `--skip-scan` with an **empty** `out/json` + `out/txt` fails (`resolvers list is empty`). A non-empty stale `out/` is reused on purpose (last working list) — prefer a fresh scan or an explicit resolvers path when unsure.
 
